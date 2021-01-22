@@ -148,13 +148,22 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
 }
 
 # Plot estimators
-get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name) {
+get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name,
+                           grid_clade) {
     out <- tidyr::expand_grid(grid_a, c = grid_c, t = NA_integer_,
                               mc = NA_real_, bc = NA_real_, ue = NA_real_)
     for (i in seq_len(nrow(out))) {
         print(i / nrow(out), digits = 3)
-        x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
-        y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
+        if (is.null(grid_clade)) {
+            x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
+            y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
+        } else {
+            v <- purrr::pluck(grid_clade$cl, which(out$L[i] == grid_clade$L))
+            x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x") %>%
+                map_lgl(is.monophyletic, v)
+            y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y") %>%
+                map_lgl(is.monophyletic, v)
+        }
 
         out$t[i] <- get_tau(x, y)
         f <- unbiased_estimator(x, y, k, m, out$t[i])
@@ -165,20 +174,26 @@ get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name) {
     return(out)
 }
 
-estimate_ground_truth <- function(out_dir, grid_a, k, m, par_name) {
-    out <- tidyr::expand_grid(grid_a, mc = NA_real_)
+estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_clade) {
+    out <- tidyr::expand_grid(grid_b, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
         print(i / nrow(out), digits = 3)
-        x <- get_pars_(out_dir, out[i, 1:7], 0, "_x")[[par_name]]
+        if (is.null(grid_clade)) {
+            x <- get_pars_(out_dir, out[i, 1:7], 0, "_x")[[par_name]]
+        } else {
+            v <- purrr::pluck(grid_clade$cl, which(out$L[i] == grid_clade$L))
+            x <- get_trees_(out_dir, out[i, 1:7], 0, "_x") %>%
+                map_lgl(is.monophyletic, v)
+        }
         out$mc[i] <- monte_carlo_estimator(x, k, m)
     }
     return(out)
 }
 
 make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                                 par_name, par_label) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name)
+                                par_name, par_label, grid_clade = NULL) {
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_clade)
 
     # Histograms
     fig_data_a <- out_a %>%
@@ -218,8 +233,8 @@ make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
 }
 
 make_estimator_bias <- function(out_dir, grid_a, grid_c, k, m, par_name,
-                               par_label) {
-    out <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name)
+                               par_label, grid_clade = NULL) {
+    out <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
 
     fig <- out %>%
         ggplot(aes(x = t, y = bc)) +
@@ -249,9 +264,9 @@ get_estimator_mse <- function(v, est) {
 }
 
 make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                               par_name, par_label) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name)
+                               par_name, par_label, grid_clade = NULL) {
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_clade)
 
     # MSEs
     fig_data <- expand_grid(grid_b, mc_1 = NA_real_, mc_n = NA_real_,
