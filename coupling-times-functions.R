@@ -201,7 +201,7 @@ make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
     fig_data_g <- fig_data_a %>%
         select(-t) %>%
         group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
-              name) %>%
+                 name) %>%
         summarise(x_mean = mean(value), .groups = "drop")
     fig_data_b <- out_b %>%
         mutate(ue = mc) %>%
@@ -299,4 +299,69 @@ make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
                 width = 8, height = 10)
      }
+}
+
+make_w1_figure <- function(out_dir, fig_tau_data, grid_clade, lag, iters) {
+
+    w1_data <- expand_grid(fig_tau_data, iter = iters, w1_root = NA_real_,
+                           w1_clade = NA_real_)  %>%
+         group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
+                  samp, tau)
+    w1_keys <- group_keys(w1_data)
+    w1_inds <- group_rows(w1_data)
+
+    for (i in seq_len(nrow(w1_keys))) {
+        print(i / nrow(w1_keys), digits = 3)
+        grid_a_i <- w1_keys[i, 1:7]
+        grid_c_i <- strtoi(w1_keys[i, 8])
+        inds_i <- w1_inds[[i]]
+
+        # Parameters
+        p_x <- get_pars_(out_dir, grid_a_i, grid_c_i, "_x")$root_time
+        p_y <- get_pars_(out_dir, grid_a_i, grid_c_i, "_y")$root_time
+        tau_i <- w1_keys$tau[i]
+        w1_data$w1_root[inds_i] <- w1_bound_estimators(tau_i, lag, iters, p_x,
+                                                       p_y)
+
+        # Clades
+        v <- purrr::pluck(grid_clade$cl, which(w1_keys$L[i] == grid_clade$L))
+        t_x <- get_trees_(out_dir, grid_a_i, grid_c_i, "_x") %>%
+            map_lgl(is.monophyletic, v)
+        t_y <- get_trees_(out_dir, grid_a_i, grid_c_i, "_y") %>%
+            map_lgl(is.monophyletic, v)
+        w1_data$w1_clade[inds_i] <- w1_bound_estimators(tau_i, lag, iters, t_x,
+                                                        t_y)
+    }
+
+    fig_w1_data <- w1_data %>%
+        ungroup(samp, tau) %>%
+        select(-c(samp, tau)) %>%
+        group_by(iter, .add = TRUE) %>%
+        summarise(w1_root = mean(w1_root), w1_clade = mean(w1_clade),
+                  w1_sum = sum(w1_root + w1_clade), .groups = "drop") %>%
+        pivot_longer(starts_with("w1_"), "stat", names_prefix = "w1_",
+                     values_to = "w1")
+    fig_w1 <- fig_w1_data %>%
+        ggplot(aes(x = iter, y = w1, colour = as.factor(lambda))) +
+        geom_line(size = 1.5, alpha = 0.75) +
+        guides(colour = guide_legend(title = "lambda")) +
+        labs(title = "W1 upper bound as number of leaves L and birth rate lambda vary",
+             subtitle = sprintf(
+                 "%.02e iterations, coupling lag = %.02e, replications = %d",
+                 w1_keys$run_length[1], w1_keys$sample_interval[1],
+                 n_distinct(w1_keys$samp)),
+             x = "iteration",
+             y = "d_w1")
+    for (scales in c("free", "fixed")) {
+        fig_w1 +
+            facet_wrap(~ L + stat, ncol = 3, scales = scales,
+                       labeller = "label_both") +
+            ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
+                   width = 10, height = 10)
+    }
+    fig_w1 +
+        ylim(0, 2) +
+        facet_wrap(~ L + stat, ncol = 3) +
+        ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
+               height = 10)
 }
