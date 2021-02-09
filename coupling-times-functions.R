@@ -1,6 +1,7 @@
 # Functions to construct file names and paths
 get_file_template <- function() {
-    file_template <- "L%d_r%.0e_l%.0e_m%.0e_b%.0e_n%.0e_s%.0e-%d%s.%s"
+    # file_template <- "L%d_r%.0e_l%.0e_m%.0e_b%.0e_n%.0e_s%.0e-%d%s.%s"
+    file_template <- "L%d_r%e_l%e_m%e_b%e_n%e_s%e-%d%s.%s"
     return(file_template)
 }
 
