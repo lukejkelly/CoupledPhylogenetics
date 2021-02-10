@@ -101,30 +101,70 @@ fig_supp <- fig_supp_data %>%
     ggplot(aes(x = config, y = supp, colour = NULL,
            fill = as.factor(index))) +
     geom_bar(position = "stack", stat = "identity", show.legend = FALSE) +
-    labs(title = "Topology posterior support",
-         # subtitle = sprintf("Samples %.02e to %.02e, subsample %d",
-         #                    k, m, grid_b$sample_interval[1]),
-         fill = NULL) +
+    labs(title = "Topology posterior support", fill = NULL) +
     theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1,
                                      size = 10)) +
     scale_x_discrete(labels = labels) +
     scale_fill_manual(values = rep_len(c("#E69F00", "#56B4E9", "#009E73",
-                                       "#F0E442"), 166)) +
+                                       "#F0E442"), 1377)) +
     facet_wrap(~ L + lambda, ncol = 4, labeller = "label_both") +
     ggsave("../figs/topology-support.pdf", width = 10, height = 10)
 
+################################################################################
+# Plotting posterior distributions and SPR distances
+target <- "20210113"
+grid_b <- make_grid(file.path("..", target, "config.R"))$grid_b
+supp_spr_out <- expand_grid(grid_b, supp = list(NA_real_),
+                            spr = list(NA_integer_))
 
-fig_supps_data <- fig_supp_data %>%
-    filter(L == 10, lambda == 0.025, config == "20210113")
-fig_supp <- fig_supps_data  %>%
-    ggplot(aes(x = config, y = supp, fill = as.factor(index))) +
-    geom_col() +
-    labs(title = "Topology posterior support",
-         # subtitle = sprintf("Samples %.02e to %.02e, subsample %d",
-         #                    k, m, grid_b$sample_interval[1]),
-         fill = NULL) +
-    # theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1,
-    #                                  size = 10)) +
-    # scale_x_discrete(labels = labels) +
-    # facet_wrap(~ L + lambda, ncol = 4, labeller = "label_both") +
-    ggsave("../figs/topology-support.pdf", width = 10, height = 10)
+# read supports and spr distance matrices
+for (i in seq_len(nrow(supp_spr_out))) {
+    print(i / nrow(supp_spr_out), digits = 3)
+    supp_file <- make_file_name_(file.path("..", target, "output"),
+                                   supp_spr_out[i, 1:7], 0, "", "supps")
+    supp_spr_out$supp[[i]] <- scan(supp_file)
+    spr_file <- sub("supps", "supp_dists", supp_file)
+    supp_spr_out$spr[[i]] <- as.matrix(read_csv(spr_file, FALSE))
+}
+
+for (i in seq_len(nrow(supp_spr_out))) {
+    print(i)
+    supp <- supp_spr_out$supp[[i]]
+    spr <- supp_spr_out$spr[[i]]
+
+    n <- length(supp)
+    # if (n == 1) {
+    #     next
+    # }
+    rownames(spr) <- colnames(spr) <- seq_len(n)
+
+    g <- graph_from_adjacency_matrix(spr, "undirected", "dist")
+    g <- set_vertex_attr(g, "supp", value = supp)
+
+    h <- as_tbl_graph(g) %>%
+        activate(edges) %>%
+        mutate(weight = 1 / dist) %>%
+        activate(edges) %>%
+        mutate(spr = as.factor(dist))
+
+    ggraph(h, "kk") +
+    geom_edge_link(aes(edge_alpha = weight, edge_colour = spr),
+                   lineend = "round",
+                   show.legend = c(edge_alpha = FALSE, edge_colour = TRUE)) +
+    geom_node_circle(aes(r = sqrt(supp / (2 * pi)), fill = supp)) +
+    labs(title = sprintf("L = %d, lambda = %g", supp_spr_out$L[i],
+                         supp_spr_out$lambda[i])) +
+    ggsave(sprintf("../20210113/figs/g%02i-L%02d-l%e.pdf", i, supp_spr_out$L[i],
+                   supp_spr_out$lambda[i]), width = 5, height = 5)
+
+    ggraph(filter(h, dist == 1), "kk") +
+    geom_edge_link(lineend = "round") +
+    geom_node_circle(aes(r = sqrt(supp / (2 * pi)), fill = supp)) +
+    labs(title = sprintf("L = %d, lambda = %g", supp_spr_out$L[i],
+                         supp_spr_out$lambda[i])) +
+    ggsave(sprintf("../20210113/figs/h%02i-L%02d-l%e.pdf", i, supp_spr_out$L[i],
+                   supp_spr_out$lambda[i]), width = 5, height = 5)
+}
+
+# pdfjam --nup 4x4 -o edges-all.pdf --papersize '{15cm,15cm}' g*.pdf
+# pdfjam --nup 4x4 -o edges-spr1.pdf --papersize '{15cm,15cm}' h*.pdf
