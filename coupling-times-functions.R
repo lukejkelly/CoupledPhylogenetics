@@ -22,6 +22,21 @@ make_file_name_ <- function(file_dir, grid, c, d, e) {
     return(file_name)
 }
 
+read_nexus_file <- function(target_dir, L, root_time, lambda, mu, beta) {
+    file_name <- sprintf(
+        file.path("..", target_dir, "data", "L%d_r%e_l%e_m%e_b%e.nex"),
+        L, root_time, lambda, mu, beta
+    )
+    f <- ape::read.nexus(file_name)
+    return(f)
+}
+
+read_nexus_file_ <- function(target_dir, grid) {
+    f <- read_nexus_file(target_dir, grid$L, grid$root_time, grid$lambda,
+                         grid$mu, grid$beta)
+    return(f)
+}
+
 # Reading tree samples
 get_trees <- function(tree_file) {
     trees <- ape::read.tree(tree_file, skip = 8, comment.char = "#")
@@ -121,7 +136,8 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, k, m, par_name) {
         nest(x = -everything())
     for (i in seq_len(nrow(out_c))) {
         print(i / nrow(out_c), digits = 3)
-        x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i], "_x")
+        x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i],
+                       ifelse(out_c$c[i] == 0, "", "_x"))
         out_c$x[[i]] <- x[[par_name]][inds]
     }
     out <- tidyr::unnest(out_c, x)
