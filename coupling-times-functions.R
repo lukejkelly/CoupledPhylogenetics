@@ -206,12 +206,7 @@ get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name, grid_d) {
 }
 
 estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
-    if (is.null(grid_d)) {
-        out <- tidyr::expand_grid(grid_b, mc = NA_real_)
-    } else {
-        out <- tidyr::expand_grid(bind_cols(grid_b, grid_d$cl, grid_d$tr),
-                                  mc = NA_real_)
-    }
+    out <- tidyr::expand_grid(grid_b, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
         if (i %% 100 == 0) {
             print(i / nrow(out), digits = 2)
@@ -221,10 +216,10 @@ estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
         } else {
             t <- get_trees_(out_dir, out[i, 1:7], 0, "")
             if (par_name == "topology support") {
-                v <- out$tr[[i]]
+                v <- grid_d$tr[[i]]
                 x <- map_lgl(t, all.equal, v, FALSE)
             } else if (par_name == "clade support") {
-                v <- out$cl[[i]]
+                v <- grid_d$cl[[i]]
                 x <- map_lgl(t, is.monophyletic, v)
             } else {
                 stop("Incorrect par_name")
