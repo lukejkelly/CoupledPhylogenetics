@@ -150,13 +150,13 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
     fig <- out %>%
         mutate(type = ifelse(c > 0, "a", "b")) %>%
         ggplot(aes(x = x, fill = as.factor(type), colour = NULL)) +
-        stat_bin(aes(y = ..density..), bins = 50, position = "dodge") +
+        stat_bin(aes(y = ..density..), bins = 30, position = "dodge") +
         labs(title = "Marginal distributions",
              subtitle = sprintf("x-chain samples %.02e to %.02e; (a) %d coupled chains and (b) 10x-longer chain", k, m, length(grid_c)),
              fill = NULL)
     for (scales in c("free", "fixed")) {
         fig +
-        facet_wrap(~ L + lambda, ncol = 3, scales = scales,
+        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
                    labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-hist_axes-%s", par_label, scales)),
@@ -165,21 +165,35 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
 }
 
 # Plot estimators
-get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name,
-                           grid_clade) {
-    out <- tidyr::expand_grid(grid_a, c = grid_c, t = NA_integer_,
-                              mc = NA_real_, bc = NA_real_, ue = NA_real_)
+get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name, grid_d) {
+    if (is.null(grid_d)) {
+        out <- tidyr::expand_grid(grid_a, c = grid_c, t = NA_integer_,
+                                  mc = NA_real_, bc = NA_real_, ue = NA_real_)
+    } else {
+        out <- tidyr::expand_grid(grid_d, c = grid_c, t = NA_integer_,
+                                  mc = NA_real_, bc = NA_real_, ue = NA_real_)
+    }
     for (i in seq_len(nrow(out))) {
-        print(i / nrow(out), digits = 3)
-        if (is.null(grid_clade)) {
+        if (i %% 100 == 0) {
+            print(i / nrow(out), digits = 2)
+        }
+        if (is.null(grid_d)) {
             x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
             y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
         } else {
-            v <- purrr::pluck(grid_clade$cl, which(out$L[i] == grid_clade$L))
-            x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x") %>%
-                map_lgl(is.monophyletic, v)
-            y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y") %>%
-                map_lgl(is.monophyletic, v)
+            t_x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x")
+            t_y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y")
+            if (par_name == "topology support") {
+                v <- out$tr[[i]]
+                x <- map_lgl(t_x, all.equal, v, FALSE)
+                y <- map_lgl(t_y, all.equal, v, FALSE)
+            } else if (par_name == "clade support") {
+                v <- out$cl[[i]]
+                x <- map_lgl(t_x, is.monophyletic, v)
+                y <- map_lgl(t_y, is.monophyletic, v)
+            } else {
+                stop("Incorrect par_name")
+            }
         }
 
         out$t[i] <- get_tau(x, y)
@@ -191,16 +205,30 @@ get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name,
     return(out)
 }
 
-estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_clade) {
-    out <- tidyr::expand_grid(grid_b, mc = NA_real_)
+estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
+    if (is.null(grid_d)) {
+        out <- tidyr::expand_grid(grid_b, mc = NA_real_)
+    } else {
+        out <- tidyr::expand_grid(bind_cols(grid_b, grid_d$cl, grid_d$tr),
+                                  mc = NA_real_)
+    }
     for (i in seq_len(nrow(out))) {
-        print(i / nrow(out), digits = 3)
-        if (is.null(grid_clade)) {
-            x <- get_pars_(out_dir, out[i, 1:7], 0, "_x")[[par_name]]
+        if (i %% 100 == 0) {
+            print(i / nrow(out), digits = 2)
+        }
+        if (is.null(grid_d)) {
+            x <- get_pars_(out_dir, out[i, 1:7], 0, "")[[par_name]]
         } else {
-            v <- purrr::pluck(grid_clade$cl, which(out$L[i] == grid_clade$L))
-            x <- get_trees_(out_dir, out[i, 1:7], 0, "_x") %>%
-                map_lgl(is.monophyletic, v)
+            t <- get_trees_(out_dir, out[i, 1:7], 0, "")
+            if (par_name == "topology support") {
+                v <- out$tr[[i]]
+                x <- map_lgl(t, all.equal, v, FALSE)
+            } else if (par_name == "clade support") {
+                v <- out$cl[[i]]
+                x <- map_lgl(t, is.monophyletic, v)
+            } else {
+                stop("Incorrect par_name")
+            }
         }
         out$mc[i] <- monte_carlo_estimator(x, k, m)
     }
@@ -208,9 +236,9 @@ estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_clade) {
 }
 
 make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                                par_name, par_label, grid_clade = NULL) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_clade)
+                                par_name, par_label, grid_d = NULL) {
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
 
     # Histograms
     fig_data_a <- out_a %>%
@@ -250,8 +278,8 @@ make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
 }
 
 make_estimator_bias <- function(out_dir, grid_a, grid_c, k, m, par_name,
-                               par_label, grid_clade = NULL) {
-    out <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
+                               par_label, grid_d = NULL) {
+    out <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
 
     fig <- out %>%
         ggplot(aes(x = t, y = bc)) +
@@ -281,9 +309,9 @@ get_estimator_mse <- function(v, est) {
 }
 
 make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                               par_name, par_label, grid_clade = NULL) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_clade)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_clade)
+                               par_name, par_label, grid_d = NULL) {
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
 
     # MSEs
     fig_data <- expand_grid(grid_b, mc_1 = NA_real_, mc_n = NA_real_,
@@ -307,7 +335,7 @@ make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
                              par_name),
              subtitle = sprintf("%d coupled chains, samples %g to %g; *_n is average of *_1 which uses a single chain (pair)",
-                         length(grid_c), k, m))
+                                length(grid_c), k, m))
      for (scales in c("free", "fixed")) {
          fig +
          facet_wrap(~ L + lambda, ncol = 3, scales = scales,
@@ -318,10 +346,10 @@ make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
      }
 }
 
-make_w1_figure <- function(out_dir, fig_tau_data, grid_clade, lag, iters) {
+make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
 
     w1_data <- expand_grid(fig_tau_data, iter = iters, w1_root = NA_real_,
-                           w1_clade = NA_real_)  %>%
+                           w1_clade = NA_real_, w1_tree = NA_real_)  %>%
          group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
                   samp, tau)
     w1_keys <- group_keys(w1_data)
@@ -340,24 +368,35 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_clade, lag, iters) {
         w1_data$w1_root[inds_i] <- w1_bound_estimators(tau_i, lag, iters, p_x,
                                                        p_y)
 
-        # Clades
-        v <- purrr::pluck(grid_clade$cl, which(w1_keys$L[i] == grid_clade$L))
-        t_x <- get_trees_(out_dir, grid_a_i, grid_c_i, "_x") %>%
-            map_lgl(is.monophyletic, v)
-        t_y <- get_trees_(out_dir, grid_a_i, grid_c_i, "_y") %>%
-            map_lgl(is.monophyletic, v)
-        w1_data$w1_clade[inds_i] <- w1_bound_estimators(tau_i, lag, iters, t_x,
-                                                        t_y)
+        # Clades and trees
+        d_i <- plyr::match_df(grid_d, w1_keys[i, ],
+                              c("L", "root_time", "lambda", "mu", "beta",
+                                "run_length", "sample_interval"))
+        t_x <- get_trees_(out_dir, grid_a_i, grid_c_i, "_x")
+        t_y <- get_trees_(out_dir, grid_a_i, grid_c_i, "_y")
+
+        c_x <- map_lgl(t_x, is.monophyletic, d_i$cl[[1]])
+        c_y <- map_lgl(t_y, is.monophyletic, d_i$cl[[1]])
+        w1_data$w1_clade[inds_i] <- w1_bound_estimators(tau_i, lag, iters, c_x,
+                                                        c_y)
+        g_x <- map_lgl(t_x, all.equal, d_i$tr[[1]], FALSE)
+        g_y <- map_lgl(t_y, all.equal, d_i$tr[[1]], FALSE)
+        w1_data$w1_tree[inds_i] <- w1_bound_estimators(tau_i, lag, iters, g_x,
+                                                        g_y)
     }
 
     fig_w1_data <- w1_data %>%
         ungroup(samp, tau) %>%
         select(-c(samp, tau)) %>%
         group_by(iter, .add = TRUE) %>%
-        summarise(w1_root = mean(w1_root), w1_clade = mean(w1_clade),
-                  w1_sum = sum(w1_root + w1_clade), .groups = "drop") %>%
+        summarise(w1_root = mean(w1_root),
+                  w1_clade = mean(w1_clade),
+                  w1_tree = mean(w1_tree),
+                  w1_sum = sum(w1_root + w1_clade + w1_tree),
+                  .groups = "drop") %>%
         pivot_longer(starts_with("w1_"), "stat", names_prefix = "w1_",
-                     values_to = "w1")
+                     values_to = "w1") %>%
+        mutate(across("stat", factor, c("root", "clade", "tree", "sum")))
     fig_w1 <- fig_w1_data %>%
         ggplot(aes(x = iter, y = w1, colour = as.factor(lambda))) +
         geom_line(size = 1.5, alpha = 0.75) +
@@ -371,14 +410,14 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_clade, lag, iters) {
              y = "d_w1")
     for (scales in c("free", "fixed")) {
         fig_w1 +
-            facet_wrap(~ L + stat, ncol = 3, scales = scales,
+            facet_wrap(~ L + stat, ncol = 4, scales = scales,
                        labeller = "label_both") +
             ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
                    width = 10, height = 10)
     }
     fig_w1 +
         ylim(0, 2) +
-        facet_wrap(~ L + stat, ncol = 3) +
+        facet_wrap(~ L + stat, ncol = 4) +
         ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
                height = 10)
 }
