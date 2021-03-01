@@ -333,7 +333,7 @@ make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
                                 length(grid_c), k, m))
      for (scales in c("free", "fixed")) {
          fig +
-         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
+         facet_wrap(~ L + lambda, ncol = 3, scales = scales,
                     labeller = "label_both") +
          ggsave(sprintf(fig_template,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
