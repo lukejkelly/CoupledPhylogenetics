@@ -264,7 +264,7 @@ make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
                                 k, m, length(grid_c)))
     for (scales in c("free", "fixed")) {
         fig +
-        facet_wrap(~ L + lambda + name, ncol = 3, scales = scales,
+        facet_wrap(~ L + lambda + name, ncol = 2, scales = scales,
                    labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-est-hist_axes-%s", par_label, scales)),
@@ -290,7 +290,7 @@ make_estimator_bias <- function(out_dir, grid_a, grid_c, k, m, par_name,
         scale_y_continuous(expand = c(0, 0))
     for (scales in c("free", "fixed")) {
         fig +
-        facet_wrap(~ L + lambda, ncol = 3, scales = scales,
+        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
                    labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-bc-tau_axes-%s", par_label, scales)),
@@ -333,7 +333,7 @@ make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
                                 length(grid_c), k, m))
      for (scales in c("free", "fixed")) {
          fig +
-         facet_wrap(~ L + lambda, ncol = 3, scales = scales,
+         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
                     labeller = "label_both") +
          ggsave(sprintf(fig_template,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
