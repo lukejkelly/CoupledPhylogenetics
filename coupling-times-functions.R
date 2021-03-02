@@ -1,6 +1,8 @@
+library("tidyverse")
+library("ape")
+
 # Functions to construct file names and paths
 get_file_template <- function() {
-    # file_template <- "L%d_r%.0e_l%.0e_m%.0e_b%.0e_n%.0e_s%.0e-%d%s.%s"
     file_template <- "L%d_r%e_l%e_m%e_b%e_n%e_s%e-%d%s.%s"
     return(file_template)
 }
@@ -101,7 +103,7 @@ get_tau_ <- function(z) {
 get_coupling_times <- function(out_dir, grid_a, grid_c) {
     tau <- matrix(NA_integer_, nrow(grid_a), length(grid_c))
     for (i in seq_len(nrow(tau))) {
-        svMisc::progress(i, nrow(tau), TRUE)
+        svMisc::progress(i, nrow(tau))
         grid_a_i <- grid_a[i, ]
         for (j in seq_along(grid_c)) {
             grid_c_j <- grid_c[j]
@@ -127,220 +129,6 @@ get_coupling_times <- function(out_dir, grid_a, grid_c) {
     return(out)
 }
 
-# Make marginal histograms
-get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, k, m, par_name) {
-    inds <- seq.int(k, m)
-
-    out_a <- tidyr::expand_grid(grid_a, c = grid_c)
-    out_b <- tidyr::expand_grid(grid_b, c = 0)
-    out_c <- rbind(out_a, out_b) %>%
-        nest(x = -everything())
-    for (i in seq_len(nrow(out_c))) {
-        svMisc::progress(i, nrow(out_c), TRUE)
-        x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i],
-                       ifelse(out_c$c[i] == 0, "", "_x"))
-        out_c$x[[i]] <- x[[par_name]][inds]
-    }
-    message(sprintf("%s marginal data read", par_name))
-    out <- tidyr::unnest(out_c, x)
-    return(out)
-}
-
-make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                                 par_name, par_label) {
-    out <- get_marginal_data(out_dir, grid_a, grid_b, grid_c, k, m, par_name)
-    fig <- out %>%
-        mutate(type = ifelse(c > 0, "a", "b")) %>%
-        ggplot(aes(x = x, fill = as.factor(type), colour = NULL)) +
-        stat_bin(aes(y = ..density..), bins = 30, position = "dodge") +
-        labs(title = "Marginal distributions",
-             subtitle = sprintf("x-chain samples %.02e to %.02e; (a) %d coupled chains and (b) 10x-longer chain", k, m, length(grid_c)),
-             fill = NULL)
-    for (scales in c("free", "fixed")) {
-        fig +
-        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                   labeller = "label_both") +
-        ggsave(sprintf(fig_template,
-                       sprintf("%s-hist_axes-%s", par_label, scales)),
-               width = 8, height = 10, limitsize = FALSE)
-    }
-}
-
-# Plot estimators
-get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name, grid_d) {
-    if (is.null(grid_d)) {
-        out <- tidyr::expand_grid(grid_a, c = grid_c, t = NA_integer_,
-                                  mc = NA_real_, bc = NA_real_, ue = NA_real_)
-    } else {
-        out <- tidyr::expand_grid(grid_d, c = grid_c, t = NA_integer_,
-                                  mc = NA_real_, bc = NA_real_, ue = NA_real_)
-    }
-    for (i in seq_len(nrow(out))) {
-        svMisc::progress(i, nrow(out), TRUE)
-        if (is.null(grid_d)) {
-            x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
-            y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
-        } else {
-            t_x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x")
-            t_y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y")
-            if (par_name == "topology support") {
-                v <- out$tr[[i]]
-                x <- map_lgl(t_x, all.equal, v, FALSE)
-                y <- map_lgl(t_y, all.equal, v, FALSE)
-            } else if (par_name == "clade support") {
-                v <- out$cl[[i]]
-                x <- map_lgl(t_x, is.monophyletic, v)
-                y <- map_lgl(t_y, is.monophyletic, v)
-            } else {
-                stop("Incorrect par_name")
-            }
-        }
-
-        out$t[i] <- get_tau(x, y)
-        f <- unbiased_estimator(x, y, k, m, out$t[i])
-        out$mc[i] <- f["mc"]
-        out$bc[i] <- f["bc"]
-        out$ue[i] <- f["ue"]
-    }
-    message(sprintf("%s estimators computed", par_name))
-    return(out)
-}
-
-estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
-    out <- tidyr::expand_grid(grid_b, mc = NA_real_)
-    for (i in seq_len(nrow(out))) {
-        svMisc::progress(i, nrow(out), TRUE)
-        if (is.null(grid_d)) {
-            x <- get_pars_(out_dir, out[i, 1:7], 0, "")[[par_name]]
-        } else {
-            t <- get_trees_(out_dir, out[i, 1:7], 0, "")
-            if (par_name == "topology support") {
-                v <- grid_d$tr[[i]]
-                x <- map_lgl(t, all.equal, v, FALSE)
-            } else if (par_name == "clade support") {
-                v <- grid_d$cl[[i]]
-                x <- map_lgl(t, is.monophyletic, v)
-            } else {
-                stop("Incorrect par_name")
-            }
-        }
-        out$mc[i] <- monte_carlo_estimator(x, k, m)
-    }
-    message(sprintf("%s ground truth computed", par_name))
-    return(out)
-}
-
-make_estimator_hist <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                                par_name, par_label, grid_d = NULL) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
-
-    # Histograms
-    fig_data_a <- out_a %>%
-        pivot_longer(c(mc, bc, ue))
-    fig_data_g <- fig_data_a %>%
-        select(-t) %>%
-        group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
-                 name) %>%
-        summarise(x_mean = mean(value), .groups = "drop")
-    fig_data_b <- out_b %>%
-        mutate(ue = mc) %>%
-        pivot_longer(c(mc, ue))
-
-    fig <- fig_data_a %>%
-        ggplot(aes(x = value)) +
-        stat_bin(aes(y = ..density.., group = as.factor(lambda)),
-                 bins = 20, position = "dodge", alpha = 0.5) +
-        geom_vline(mapping = aes(xintercept = x_mean, colour = "blue",
-                                 linetype = 3),
-                   alpha = 0.8, data = fig_data_g, size = 1, linetype = 2,
-                   show.legend = FALSE) +
-        geom_vline(mapping = aes(xintercept = value), colour = "red",
-                  data = fig_data_b, size = 1.5, linetype = 3) +
-        guides(fill = guide_legend(title = "lambda"), colour = FALSE) +
-        labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
-                             par_name),
-             subtitle = sprintf("Samples %.02e to %.02e; histogram of %d coupled estimators, dotted line is their average;\ndashed line is MC estimator from 10x-longer chain",
-                                k, m, length(grid_c)))
-    for (scales in c("free", "fixed")) {
-        fig +
-        facet_wrap(~ L + lambda + name, ncol = 2, scales = scales,
-                   labeller = "label_both") +
-        ggsave(sprintf(fig_template,
-                       sprintf("%s-est-hist_axes-%s", par_label, scales)),
-               width = 8, height = 30, limitsize = FALSE)
-    }
-}
-
-make_estimator_bias <- function(out_dir, grid_a, grid_c, k, m, par_name,
-                               par_label, grid_d = NULL) {
-    out <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
-
-    fig <- out %>%
-        ggplot(aes(x = t, y = bc)) +
-        geom_point(alpha = 0.2) +
-        # geom_density2d_filled(show.legend = c(fill = TRUE)) +
-        labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
-                             par_name),
-             subtitle = sprintf("Samples %.02e to %.02e; %d coupled estimators",
-                                k, m, length(grid_c)),
-             x = "tau",
-             y = "bias correction") +
-        scale_x_continuous(expand = c(0, 0)) +
-        scale_y_continuous(expand = c(0, 0))
-    for (scales in c("free", "fixed")) {
-        fig +
-        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                   labeller = "label_both") +
-        ggsave(sprintf(fig_template,
-                       sprintf("%s-bc-tau_axes-%s", par_label, scales)),
-               width = 8, height = 10, limitsize = FALSE)
-    }
-}
-
-get_estimator_mse <- function(v, est) {
-    m <- mean((v - est)^2)
-    return(m)
-}
-
-make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                               par_name, par_label, grid_d = NULL) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
-
-    # MSEs
-    fig_data <- expand_grid(grid_b, mc_1 = NA_real_, mc_n = NA_real_,
-                            ue_n = NA_real_)
-    for (i in seq_len(nrow(fig_data))) {
-        out_i <- filter(out_a, L == fig_data$L[i], lambda == fig_data$lambda[i])
-        mc_1 <- out_i$mc
-        mc_n <- mean(mc_1)
-        ue_n <- mean(out_i$ue)
-
-        v <- out_b$mc[i]
-        fig_data$mc_1[i] <- get_estimator_mse(v, mc_1)
-        fig_data$mc_n[i] <- get_estimator_mse(v, mc_n)
-        fig_data$ue_n[i] <- get_estimator_mse(v, ue_n)
-    }
-
-    fig <- fig_data %>%
-        pivot_longer(c(mc_1, mc_n, ue_n), "estimator", values_to = "mse") %>%
-        ggplot(aes(x = estimator, y = mse)) +
-        geom_col() +
-        labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
-                             par_name),
-             subtitle = sprintf("%d coupled chains, samples %g to %g; *_n is average of *_1 which uses a single chain (pair)",
-                                length(grid_c), k, m))
-     for (scales in c("free", "fixed")) {
-         fig +
-         facet_wrap(~ L + lambda, ncol = 3, scales = scales,
-                    labeller = "label_both") +
-         ggsave(sprintf(fig_template,
-                        sprintf("%s-mse_axes-%s", par_label, scales)),
-                width = 8, height = 10)
-     }
-}
-
 make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
 
     w1_data <- expand_grid(fig_tau_data, iter = iters, w1_root = NA_real_,
@@ -351,7 +139,7 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
     w1_inds <- group_rows(w1_data)
 
     for (i in seq_len(nrow(w1_keys))) {
-        svMisc::progress(i, nrow(w1_keys), TRUE)
+        svMisc::progress(i, nrow(w1_keys))
         print(i / nrow(w1_keys), digits = 3)
         grid_a_i <- w1_keys[i, 1:7]
         grid_c_i <- strtoi(w1_keys[i, 8])
@@ -397,7 +185,7 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
         ggplot(aes(x = iter, y = w1, colour = as.factor(lambda))) +
         geom_line(size = 1.5, alpha = 0.75) +
         guides(colour = guide_legend(title = "lambda")) +
-        labs(title = "W1 upper bound as number of leaves L and birth rate lambda vary",
+        labs(title = "W1 bound as leaf count L and birth rate lambda vary",
              subtitle = sprintf(
                  "%.02e iterations, coupling lag = %.02e, replications = %d",
                  w1_keys$run_length[1], w1_keys$sample_interval[1],
@@ -416,4 +204,241 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
         facet_wrap(~ L + stat, ncol = 3) +
         ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
                height = 10)
+}
+
+# Make marginal histograms
+get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, k, m, par_name) {
+    inds <- seq.int(k, m)
+
+    out_a <- tidyr::expand_grid(grid_a, c = grid_c)
+    out_b <- tidyr::expand_grid(grid_b, c = 0)
+    out_c <- rbind(out_a, out_b) %>%
+        nest(x = -everything())
+    for (i in seq_len(nrow(out_c))) {
+        svMisc::progress(i, nrow(out_c))
+        x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i],
+                       ifelse(out_c$c[i] == 0, "", "_x"))
+        out_c$x[[i]] <- x[[par_name]][inds]
+    }
+    message(sprintf("%s marginal data read", par_name))
+    out <- tidyr::unnest(out_c, x)
+    return(out)
+}
+
+make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k = NULL, m,
+                               par_name, par_label) {
+    if (is.null(k)) {
+        k <- floor(m / 10)
+    }
+    out <- get_marginal_data(out_dir, grid_a, grid_b, grid_c, k, m, par_name)
+    fig <- out %>%
+        mutate(type = ifelse(c > 0, "a", "b")) %>%
+        ggplot(aes(x = x, fill = as.factor(type), colour = NULL)) +
+        stat_bin(aes(y = ..density..), bins = 30, position = "dodge") +
+        labs(title = "Marginal distributions",
+             subtitle = sprintf("x-chain samples %.02e to %.02e; (a) %d coupled chains and (b) 10x-longer chain", k, m, length(grid_c)),
+             fill = NULL)
+    for (scales in c("free", "fixed")) {
+        fig +
+        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
+                   labeller = "label_both") +
+        ggsave(sprintf(fig_template,
+                       sprintf("%s-hist_axes-%s", par_label, scales)),
+               width = 8, height = 10, limitsize = FALSE)
+    }
+}
+
+# Plot estimators
+get_estimators <- function(out_dir, grid_a, grid_c, k = NULL, m, par_name,
+                           grid_d) {
+    if (is.null(k)) {
+        k <- floor(m * c(1, 2, 5) / 10)
+    }
+    if (is.null(grid_d)) {
+        out_l <- grid_a
+    } else {
+        out_l <- grid_d
+    }
+    out <- tidyr::expand_grid(out_l, c = grid_c, t = NA_integer_, k = k,
+                              mc = NA_real_, bc = NA_real_, ue = NA_real_) %>%
+        nest(k = k, s = c(mc, bc, ue))
+    for (i in seq_len(nrow(out))) {
+        svMisc::progress(i, nrow(out))
+        if (is.null(grid_d)) {
+            x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
+            y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
+        } else {
+            t_x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x")
+            t_y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y")
+            if (par_name == "topology support") {
+                v <- out$tr[[i]]
+                x <- map_lgl(t_x, all.equal, v, FALSE)
+                y <- map_lgl(t_y, all.equal, v, FALSE)
+            } else if (par_name == "clade support") {
+                v <- out$cl[[i]]
+                x <- map_lgl(t_x, is.monophyletic, v)
+                y <- map_lgl(t_y, is.monophyletic, v)
+            } else {
+                stop("Incorrect par_name")
+            }
+        }
+        out$t[i] <- get_tau(x, y)
+        out$s[[i]] <- map_dfr(k, ~unbiased_estimator(x, y, ., m, out$t[i]))
+    }
+    message(sprintf("%s estimators computed", par_name))
+    out <- unnest(out, cols = c(k, s))
+    return(out)
+}
+
+estimate_ground_truth <- function(out_dir, grid_b, k = NULL, m, par_name,
+                                  grid_d) {
+    if (is.null(k)) {
+        k <- floor(m * c(1, 2, 5) / 10)
+    }
+    out <- tidyr::expand_grid(grid_b, k = k, mc = NA_real_) %>%
+        nest(k = k, s = mc)
+    for (i in seq_len(nrow(out))) {
+        svMisc::progress(i, nrow(out))
+        if (is.null(grid_d)) {
+            x <- get_pars_(out_dir, out[i, 1:7], 0, "")[[par_name]]
+        } else {
+            t <- get_trees_(out_dir, out[i, 1:7], 0, "")
+            if (par_name == "topology support") {
+                v <- grid_d$tr[[i]]
+                x <- map_lgl(t, all.equal, v, FALSE)
+            } else if (par_name == "clade support") {
+                v <- grid_d$cl[[i]]
+                x <- map_lgl(t, is.monophyletic, v)
+            } else {
+                stop("Incorrect par_name")
+            }
+        }
+        out$s[[i]]$mc <- map_dbl(k, ~monte_carlo_estimator(x, ., m))
+    }
+    message(sprintf("%s ground truth computed", par_name))
+    out <- unnest(out, cols = c(k, s))
+    return(out)
+}
+
+make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, k = NULL, m,
+                                 par_name, par_label, grid_d = NULL) {
+
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
+
+    make_estimator_hist(out_a, out_b, par_name, par_label)
+    make_estimator_bias(out_a, par_name, par_label)
+    make_estimator_mse(out_a, out_b, par_name, par_label)
+}
+
+make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
+    # Coupled estimators
+    fig_data_a <- out_a %>%
+        pivot_longer(c(mc, bc, ue))
+    # Average across chains
+    fig_data_g <- fig_data_a %>%
+        select(-t) %>%
+        group_by(L, root_time, lambda, mu, beta, run_length, sample_interval, k,
+                 name) %>%
+        summarise(value = mean(value), .groups = "drop")
+    # Ground truth estimates
+    fig_data_b <- out_b %>%
+        mutate(ue = mc) %>%
+        pivot_longer(c(mc, ue))
+    # Merge overall estimates
+    fig_data_c <- bind_rows(bind_cols(fig_data_g, estimate = "average"),
+                            bind_cols(fig_data_b, estimate = "ground truth"))
+
+    fig <- fig_data_a %>%
+        ggplot(aes(x = value)) +
+        # stat_bin(aes(y = ..density.., fill = as.factor(k)),
+        #          bins = 10, position = "dodge", alpha = 0.5) +
+        geom_density(aes(fill = as.factor(k)), alpha = 0.5, colour = NA) +
+        geom_vline(mapping = aes(xintercept = value, colour = as.factor(k),
+                                 linetype = estimate),
+                   alpha = 0.8, data = fig_data_c, size = 1) +
+        guides(fill = guide_legend(title = "k"), colour = FALSE) +
+        facet_wrap(~ L + lambda + name, ncol = 3, scales = "free",
+                  labeller = "label_both") +
+        labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
+                             par_name),
+             subtitle = sprintf("Samples k to %.02e\n%d pairs of coupled chains, length %.02e and subsample %.02e\n1 ground truth chain, length %.02e at subsample %.02e",
+                                m, n_distinct(out_a$c),
+                                out_a$run_length[1], out_a$sample_interval[1],
+                                out_b$run_length[1], out_b$sample_interval[1]))
+    for (scales in c("free", "fixed")) {
+        fig +
+        facet_wrap(~ L + lambda + name, ncol = 3, scales = scales,
+                   labeller = "label_both") +
+        ggsave(sprintf(fig_template,
+                       sprintf("%s-est-hist_axes-%s", par_label, scales)),
+               width = 8, height = 12, limitsize = FALSE)
+    }
+}
+
+make_estimator_bias <- function(out_a, par_name, par_label) {
+    fig <- out_a %>%
+        ggplot(aes(x = t, y = bc, fill = as.factor(k), colour = as.factor(k))) +
+        geom_point(alpha = 0.33) +
+        labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
+                             par_name),
+             subtitle = sprintf("Samples k to %.02e; %d coupled estimators; chain length %.02e and subsample %.02e",
+                                m, n_distinct(out_a$c), out_a$run_length[1],
+                                out_a$sample_interval[1]),
+             x = "tau",
+             y = "bias correction") +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        guides(colour = guide_legend(title = "k"), fill = FALSE)
+    for (scales in c("free", "fixed")) {
+        fig +
+        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
+                   labeller = "label_both") +
+        ggsave(sprintf(fig_template,
+                       sprintf("%s-bc-tau_axes-%s", par_label, scales)),
+               width = 8, height = 8, limitsize = FALSE)
+    }
+}
+
+get_estimator_mse <- function(v, est) {
+    m <- mean((v - est)^2)
+    return(m)
+}
+
+make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
+                               par_name, par_label, grid_d = NULL) {
+    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
+    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
+
+    # MSEs
+    fig_data <- expand_grid(grid_b, mc_1 = NA_real_, mc_n = NA_real_,
+                            ue_n = NA_real_)
+    for (i in seq_len(nrow(fig_data))) {
+        out_i <- filter(out_a, L == fig_data$L[i], lambda == fig_data$lambda[i])
+        mc_1 <- out_i$mc
+        mc_n <- mean(mc_1)
+        ue_n <- mean(out_i$ue)
+
+        v <- out_b$mc[i]
+        fig_data$mc_1[i] <- get_estimator_mse(v, mc_1)
+        fig_data$mc_n[i] <- get_estimator_mse(v, mc_n)
+        fig_data$ue_n[i] <- get_estimator_mse(v, ue_n)
+    }
+
+    fig <- fig_data %>%
+        pivot_longer(c(mc_1, mc_n, ue_n), "estimator", values_to = "mse") %>%
+        ggplot(aes(x = estimator, y = mse)) +
+        geom_col() +
+        labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
+                             par_name),
+             subtitle = sprintf("%d coupled chains, samples %g to %g; *_n is average of *_1 which uses a single chain (pair)",
+                                length(grid_c), k, m))
+     for (scales in c("free", "fixed")) {
+         fig +
+         facet_wrap(~ L + lambda, ncol = 3, scales = scales,
+                    labeller = "label_both") +
+         ggsave(sprintf(fig_template,
+                        sprintf("%s-mse_axes-%s", par_label, scales)),
+                width = 8, height = 10)
+     }
 }
