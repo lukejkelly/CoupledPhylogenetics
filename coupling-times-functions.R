@@ -101,7 +101,7 @@ get_tau_ <- function(z) {
 get_coupling_times <- function(out_dir, grid_a, grid_c) {
     tau <- matrix(NA_integer_, nrow(grid_a), length(grid_c))
     for (i in seq_len(nrow(tau))) {
-        print(i / nrow(tau), digits = 3)
+        svMisc::progress(i, nrow(tau), TRUE)
         grid_a_i <- grid_a[i, ]
         for (j in seq_along(grid_c)) {
             grid_c_j <- grid_c[j]
@@ -120,6 +120,7 @@ get_coupling_times <- function(out_dir, grid_a, grid_c) {
             tau[i, j] <- max(c(tau_p, tau_l, tau_r, tau_t))
         }
     }
+    message("coupling times computed")
     out <- cbind(grid_a, tau = tau) %>%
         pivot_longer(starts_with("tau"), "samp", names_prefix = "tau.",
                      values_to = "tau")
@@ -135,11 +136,12 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, k, m, par_name) {
     out_c <- rbind(out_a, out_b) %>%
         nest(x = -everything())
     for (i in seq_len(nrow(out_c))) {
-        print(i / nrow(out_c), digits = 3)
+        svMisc::progress(i, nrow(out_c), TRUE)
         x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i],
                        ifelse(out_c$c[i] == 0, "", "_x"))
         out_c$x[[i]] <- x[[par_name]][inds]
     }
+    message(sprintf("%s marginal data read", par_name))
     out <- tidyr::unnest(out_c, x)
     return(out)
 }
@@ -174,9 +176,7 @@ get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name, grid_d) {
                                   mc = NA_real_, bc = NA_real_, ue = NA_real_)
     }
     for (i in seq_len(nrow(out))) {
-        if (i %% 100 == 0) {
-            print(i / nrow(out), digits = 2)
-        }
+        svMisc::progress(i, nrow(out), TRUE)
         if (is.null(grid_d)) {
             x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
             y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
@@ -202,15 +202,14 @@ get_estimators <- function(out_dir, grid_a, grid_c, k, m, par_name, grid_d) {
         out$bc[i] <- f["bc"]
         out$ue[i] <- f["ue"]
     }
+    message(sprintf("%s estimators computed", par_name))
     return(out)
 }
 
 estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
     out <- tidyr::expand_grid(grid_b, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
-        if (i %% 100 == 0) {
-            print(i / nrow(out), digits = 2)
-        }
+        svMisc::progress(i, nrow(out), TRUE)
         if (is.null(grid_d)) {
             x <- get_pars_(out_dir, out[i, 1:7], 0, "")[[par_name]]
         } else {
@@ -227,6 +226,7 @@ estimate_ground_truth <- function(out_dir, grid_b, k, m, par_name, grid_d) {
         }
         out$mc[i] <- monte_carlo_estimator(x, k, m)
     }
+    message(sprintf("%s ground truth computed", par_name))
     return(out)
 }
 
@@ -351,6 +351,7 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
     w1_inds <- group_rows(w1_data)
 
     for (i in seq_len(nrow(w1_keys))) {
+        svMisc::progress(i, nrow(w1_keys), TRUE)
         print(i / nrow(w1_keys), digits = 3)
         grid_a_i <- w1_keys[i, 1:7]
         grid_c_i <- strtoi(w1_keys[i, 8])
@@ -379,6 +380,7 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
         w1_data$w1_tree[inds_i] <- w1_bound_estimators(tau_i, lag, iters, g_x,
                                                         g_y)
     }
+    message("w1 bounds computed")
 
     fig_w1_data <- w1_data %>%
         ungroup(samp, tau) %>%
@@ -387,7 +389,6 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
         summarise(w1_root = mean(w1_root),
                   w1_clade = mean(w1_clade),
                   w1_tree = mean(w1_tree),
-                  w1_sum = sum(w1_root + w1_clade + w1_tree),
                   .groups = "drop") %>%
         pivot_longer(starts_with("w1_"), "stat", names_prefix = "w1_",
                      values_to = "w1") %>%
@@ -405,14 +406,14 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
              y = "d_w1")
     for (scales in c("free", "fixed")) {
         fig_w1 +
-            facet_wrap(~ L + stat, ncol = 4, scales = scales,
+            facet_wrap(~ L + stat, ncol = 3, scales = scales,
                        labeller = "label_both") +
             ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
                    width = 10, height = 10)
     }
     fig_w1 +
         ylim(0, 2) +
-        facet_wrap(~ L + stat, ncol = 4) +
+        facet_wrap(~ L + stat, ncol = 3) +
         ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
                height = 10)
 }
