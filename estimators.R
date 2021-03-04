@@ -1,7 +1,14 @@
+samples_k_to_m <- function(x, k, m) {
+    # x indexed from 0 so x[1] = x_0, we want x_k, ..., x_m
+    inds <- seq.int(k, m) + 1
+    x_km <- x[inds]
+    return(x_km)
+}
+
 monte_carlo_estimator <- function(x, k, m) {
     # Assume x includes initial state so x[1] = x_0
-    x_inds <- seq.int(k, m)
-    mc <- mean(x[x_inds + 1])
+    x_km <- samples_k_to_m(x, k, m)
+    mc <- mean(x_km)
     return(mc)
 }
 
