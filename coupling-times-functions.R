@@ -41,7 +41,7 @@ read_nexus_file_ <- function(target_dir, grid) {
 
 # Reading tree samples
 get_trees <- function(tree_file) {
-    trees <- ape::read.tree(tree_file, skip = 8, comment.char = "#")
+    trees <- ape::read.tree(tree_file, skip = 7, comment.char = "#")
     return(trees)
 }
 
@@ -249,8 +249,11 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k = NULL, m,
 }
 
 # Plot estimators
-get_estimators <- function(out_dir, grid_a, grid_c, k = NULL, m, par_name,
-                           grid_d) {
+get_estimators <- function(out_dir, grid_a, grid_c, grid_d, par_name, k = NULL,
+                           m = NULL) {
+    if (is.null(m)) {
+        m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
+    }
     if (is.null(k)) {
         k <- floor(m * c(1, 2, 5) / 10)
     }
@@ -290,13 +293,11 @@ get_estimators <- function(out_dir, grid_a, grid_c, k = NULL, m, par_name,
     return(out)
 }
 
-estimate_ground_truth <- function(out_dir, grid_b, k = NULL, m, par_name,
-                                  grid_d) {
-    if (is.null(k)) {
-        k <- floor(m * c(1, 2, 5) / 10)
-    }
-    out <- tidyr::expand_grid(grid_b, k = k, mc = NA_real_) %>%
-        nest(k = k, s = mc)
+estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
+    m <- floor(grid_b$run_length[1] / grid_b$sample_interval[1])
+    k <- floor(m / 10)
+
+    out <- tibble(grid_b, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
         svMisc::progress(i, nrow(out))
         if (is.null(grid_d)) {
@@ -313,18 +314,18 @@ estimate_ground_truth <- function(out_dir, grid_b, k = NULL, m, par_name,
                 stop("Incorrect par_name")
             }
         }
-        out$s[[i]]$mc <- map_dbl(k, ~monte_carlo_estimator(x, ., m))
+        out$mc[[i]] <- monte_carlo_estimator(x, k, m)
     }
     message(sprintf("%s ground truth computed", par_name))
-    out <- unnest(out, cols = c(k, s))
     return(out)
 }
 
-make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, k = NULL, m,
-                                 par_name, par_label, grid_d = NULL) {
+make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
+                                par_name, par_label, k = NULL, m = NULL) {
 
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
+    out_a <- get_estimators(out_dir, grid_a, grid_c, grid_d, par_name,
+                            k = NULL, m = NULL)
+    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
 
     make_estimator_hist(out_a, out_b, par_name, par_label)
     make_estimator_bias(out_a, par_name, par_label)
@@ -351,13 +352,11 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
 
     fig <- fig_data_a %>%
         ggplot(aes(x = value)) +
-        # stat_bin(aes(y = ..density.., fill = as.factor(k)),
-        #          bins = 10, position = "dodge", alpha = 0.5) +
-        geom_density(aes(fill = as.factor(k)), alpha = 0.5, colour = NA) +
-        geom_vline(mapping = aes(xintercept = value, colour = as.factor(k),
-                                 linetype = estimate),
-                   alpha = 0.8, data = fig_data_c, size = 1) +
-        guides(fill = guide_legend(title = "k"), colour = FALSE) +
+        geom_density(aes(colour = as.factor(k)), alpha = 0.5, fill = NA) +
+        geom_vline(aes(xintercept = value, colour = as.factor(k),
+                       linetype = estimate),
+                   fig_data_c, alpha = 0.8, size = 1) +
+        guides(colour = guide_legend(title = "k"), fill = FALSE) +
         facet_wrap(~ L + lambda + name, ncol = 3, scales = "free",
                   labeller = "label_both") +
         labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
@@ -379,16 +378,14 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
 make_estimator_bias <- function(out_a, par_name, par_label) {
     fig <- out_a %>%
         ggplot(aes(x = t, y = bc, fill = as.factor(k), colour = as.factor(k))) +
-        geom_point(alpha = 0.33) +
+        geom_point(alpha = 0.6) +
         labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to %.02e; %d coupled estimators; chain length %.02e and subsample %.02e",
+             subtitle = sprintf("Samples k to %.02e; %d coupled chains of length %.02e at sampling interval %.02e",
                                 m, n_distinct(out_a$c), out_a$run_length[1],
                                 out_a$sample_interval[1]),
              x = "tau",
              y = "bias correction") +
-        scale_x_continuous(expand = c(0, 0)) +
-        scale_y_continuous(expand = c(0, 0)) +
         guides(colour = guide_legend(title = "k"), fill = FALSE)
     for (scales in c("free", "fixed")) {
         fig +
@@ -405,40 +402,47 @@ get_estimator_mse <- function(v, est) {
     return(m)
 }
 
-make_estimator_mse <- function(out_dir, grid_a, grid_b, grid_c, k, m,
-                               par_name, par_label, grid_d = NULL) {
-    out_a <- get_estimators(out_dir, grid_a, grid_c, k, m, par_name, grid_d)
-    out_b <- estimate_ground_truth(out_dir, grid_b, k, m, par_name, grid_d)
-
-    # MSEs
-    fig_data <- expand_grid(grid_b, mc_1 = NA_real_, mc_n = NA_real_,
-                            ue_n = NA_real_)
+make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
+    fig_data <- out_a %>%
+        select(-c(cl, tr, c, t, bc)) %>%
+        nest(s = c(mc, ue)) %>%
+        tibble(mse_mc_1 = NA_real_, mse_mc_n = NA_real_,
+               mse_ue_n = NA_real_)
     for (i in seq_len(nrow(fig_data))) {
-        out_i <- filter(out_a, L == fig_data$L[i], lambda == fig_data$lambda[i])
-        mc_1 <- out_i$mc
+        mc_1 <- fig_data$s[[i]]$mc
         mc_n <- mean(mc_1)
-        ue_n <- mean(out_i$ue)
+        ue_n <- mean(fig_data$s[[i]]$ue)
 
-        v <- out_b$mc[i]
-        fig_data$mc_1[i] <- get_estimator_mse(v, mc_1)
-        fig_data$mc_n[i] <- get_estimator_mse(v, mc_n)
-        fig_data$ue_n[i] <- get_estimator_mse(v, ue_n)
+        v <- semi_join(out_b, fig_data[i, ], c("L", "root_time", "lambda",
+                                               "mu", "beta"))$mc
+        fig_data$mse_mc_1[i] <- get_estimator_mse(v, mc_1)
+        fig_data$mse_mc_n[i] <- get_estimator_mse(v, mc_n)
+        fig_data$mse_ue_n[i] <- get_estimator_mse(v, ue_n)
     }
+    label_data <- out_a %>%
+        select(L, root_time, lambda, mu, beta, t, k) %>%
+        nest(t = t)
+    label_data$mt <- map2_dbl(label_data$k, label_data$t, ~mean(.x >= .y$t))
 
     fig <- fig_data %>%
-        pivot_longer(c(mc_1, mc_n, ue_n), "estimator", values_to = "mse") %>%
-        ggplot(aes(x = estimator, y = mse)) +
-        geom_col() +
+        pivot_longer(c(mse_mc_1, mse_mc_n, mse_ue_n), "estimator",
+                     names_prefix = "mse_", values_to = "mse") %>%
+        ggplot(aes(x = as.factor(k), y = mse, fill = estimator)) +
+        geom_col(position = "dodge") +
+        geom_label(aes(x = as.factor(k), y = 0, label = mt), label_data,
+                   fill = NA, position = position_dodge(width = 1),
+                   inherit.aes = FALSE) +
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("%d coupled chains, samples %g to %g; *_n is average of *_1 which uses a single chain (pair)",
-                                length(grid_c), k, m))
+             subtitle = sprintf("Samples k to %.02e in %d coupled chains; *_n is average of single chain/pair estimators *_1",
+                                m, length(grid_c)),
+             x = "k")
      for (scales in c("free", "fixed")) {
          fig +
-         facet_wrap(~ L + lambda, ncol = 3, scales = scales,
+         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
                     labeller = "label_both") +
          ggsave(sprintf(fig_template,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
-                width = 8, height = 10)
+                width = 8, height = 8)
      }
 }
