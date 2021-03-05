@@ -3,13 +3,10 @@ library("tidyverse")
 library("fs")
 
 source("estimators.R")
-source("coupling-times-functions.R")
+source("coupling-plots.R")
 source("ipm-bounds.R")
 
 # Set target, e.g. target <- "20201217"
-if (!exists("target")) {
-    target <- readline("target directory name = ")
-}
 
 # Make grids of config and run settings
 config_file <- file.path("..", target, "config.R")
@@ -19,9 +16,11 @@ grid_a <- grids$grid_a
 grid_b <- grids$grid_b
 grid_c <- grids$grid_c
 
-grid_clade <- list(c(5, 6, 7, 8), c(6, 7), c(3, 4), c(3, 4, 7, 8), c(3, 4)) %>%
-    map(as.character) %>%
-    tibble(L = c(10, 12, 6, 8, 4), cl = .)
+grid_d <- grid_a
+grid_d$cl <- rep(list(c("5", "6"), c("10", "9")), each = 2)
+grid_d$tr <- grid_a %>%
+    select(L, root_time, lambda, mu, beta) %>%
+    pmap(function(...) read_nexus_file(target, ...))
 
 # Target figure and output templates and directories
 fig_dir <- file.path("..", target, "figs")
@@ -29,10 +28,6 @@ dir_create(fig_dir)
 fig_template <- sprintf("%s/%%s.pdf", fig_dir)
 
 out_dir <- file.path("..", target, "output")
-
-# Parameters for unbiased estimators
-k <- 2e2
-m <- 1e3
 
 ################################################################################
 # Coupling times
@@ -57,15 +52,15 @@ for (scales in c("free", "fixed")) {
 }
 
 # Integral probablity metrics
-iters <- seq.int(0, m)
-lag <- 1  # Efectively since we subsample at the same rate
+iters <- seq.int(0, grid_a$run_length[1] / grid_a$sample_interval[1])
+lag <- 1
 tv_data <- expand_grid(fig_tau_data, iter = iters, tv = NA_integer_)
-tv_data$tv <- tv_bound_estimator(fig_tv_data$tau, lag, fig_tv_data$iter)
+tv_data$tv <- tv_bound_estimator(tv_data$tau, lag, tv_data$iter)
 
 fig_tv_data <- tv_data %>%
     group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
              iter) %>%
-    summarise(tv = mean(tv), .groups = "drop") %>%
+    summarise(tv = mean(tv), .groups = "drop")
 
 fig_tv <- fig_tv_data %>%
     ggplot(aes(x = iter, y = tv, colour = as.factor(lambda))) +
@@ -88,27 +83,18 @@ fig_tv +
     facet_wrap(~ L, ncol = 1) +
     ggsave(sprintf(fig_template, "tv_axes-clipped"), width = 8, height = 10)
 
-make_w1_figure(out_dir, fig_tau_data, iters, grid_clade)
-
+make_w1_figure(out_dir, fig_tau_data, grid_d, 1, iters)
 
 ################################################################################
 # Marginal histograms
-make_marginal_hist(out_dir, grid_a, grid_b, grid_c, k, m, "integrated_llkd",
-                   "llkd")
-make_marginal_hist(out_dir, grid_a, grid_b, grid_c, k, m, "root_time", "root")
+make_marginal_hist(out_dir, grid_a, grid_b, grid_c, "integrated_llkd", "llkd")
+make_marginal_hist(out_dir, grid_a, grid_b, grid_c, "root_time", "root")
 
 ################################################################################
 # Estimators
 
-# Root time
-make_estimator_hist(out_dir, grid_a, grid_b, grid_c, k, m, "root_time", "root")
-make_estimator_bias(out_dir, grid_a, grid_c, k, m, "root_time", "root")
-make_estimator_mse(out_dir, grid_a, grid_b, grid_c, k, m, "root_time", "root")
-
-# Clade support
-make_estimator_hist(out_dir, grid_a, grid_b, grid_c, k, m, "clade support",
-                    "clade", grid_clade)
-make_estimator_bias(out_dir, grid_a, grid_c, k, m, "clade support", "clade",
-                    grid_clade)
-make_estimator_mse(out_dir, grid_a, grid_b, grid_c, k, m, "clade support",
-                   "clade", grid_clade)
+make_estimator_figs(out_dir, grid_a, grid_b, grid_c, NULL, "root_time", "root")
+make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "clade support",
+                    "clade")
+make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "topology support",
+                    "topology")

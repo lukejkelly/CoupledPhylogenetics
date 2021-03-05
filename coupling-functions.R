@@ -95,6 +95,8 @@ get_tau_ <- function(z) {
     tau <- dplyr::last(which(z)) + 1
     if (is.na(tau)) {
         tau <- 1
+    } else if (tau > length(z)) {
+        tau <- NA_integer_
     }
     return(tau)
 }
@@ -140,7 +142,6 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
 
     for (i in seq_len(nrow(w1_keys))) {
         svMisc::progress(i, nrow(w1_keys))
-        print(i / nrow(w1_keys), digits = 3)
         grid_a_i <- w1_keys[i, 1:7]
         grid_c_i <- strtoi(w1_keys[i, 8])
         inds_i <- w1_inds[[i]]
@@ -207,30 +208,37 @@ make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
 }
 
 # Make marginal histograms
-get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, k, m, par_name) {
-    inds <- seq.int(k, m)
+get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, par_name, k, m) {
 
     out_a <- tidyr::expand_grid(grid_a, c = grid_c)
     out_b <- tidyr::expand_grid(grid_b, c = 0)
-    out_c <- rbind(out_a, out_b) %>%
+    out_c <- bind_rows(out_a, out_b) %>%
         nest(x = -everything())
     for (i in seq_len(nrow(out_c))) {
         svMisc::progress(i, nrow(out_c))
-        x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i],
-                       ifelse(out_c$c[i] == 0, "", "_x"))
-        out_c$x[[i]] <- x[[par_name]][inds]
+        if (out_c$c[i] == 0) {
+            x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i], "")
+            out_c$x[[i]] <- x[[par_name]][ind_x(k, grid_b$run_length[1] / grid_b$sample_interval[1])]
+
+        } else {
+            x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i], "_x")
+            out_c$x[[i]] <- x[[par_name]][ind_x(k, m)]
+        }
     }
     message(sprintf("%s marginal data read", par_name))
     out <- tidyr::unnest(out_c, x)
     return(out)
 }
 
-make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, k = NULL, m,
-                               par_name, par_label) {
+make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, par_name,
+                               par_label, k = NULL, m = NULL) {
+    if (is.null(m)) {
+        m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
+    }
     if (is.null(k)) {
         k <- floor(m / 10)
     }
-    out <- get_marginal_data(out_dir, grid_a, grid_b, grid_c, k, m, par_name)
+    out <- get_marginal_data(out_dir, grid_a, grid_b, grid_c, par_name, k, m)
     fig <- out %>%
         mutate(type = ifelse(c > 0, "a", "b")) %>%
         ggplot(aes(x = x, fill = as.factor(type), colour = NULL)) +
@@ -323,9 +331,8 @@ estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
 make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
                                 par_name, par_label, k = NULL, m = NULL) {
 
-    out_a <- get_estimators(out_dir, grid_a, grid_c, grid_d, par_name,
-                            k = NULL, m = NULL)
-    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
+    out_a <- get_estimators(out_dir, grid_a, grid_c, grid_d, par_name, k, m)
+    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name, k, m)
 
     make_estimator_hist(out_a, out_b, par_name, par_label)
     make_estimator_bias(out_a, par_name, par_label)
@@ -333,6 +340,7 @@ make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
 }
 
 make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
+    # TODO: add m to title
     # Coupled estimators
     fig_data_a <- out_a %>%
         pivot_longer(c(mc, bc, ue))
@@ -361,8 +369,8 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
                   labeller = "label_both") +
         labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to %.02e\n%d pairs of coupled chains, length %.02e and subsample %.02e\n1 ground truth chain, length %.02e at subsample %.02e",
-                                m, n_distinct(out_a$c),
+             subtitle = sprintf("Samples k to m\n%d pairs of coupled chains, length m = %.02e and subsample %.02e\n1 ground truth chain, length %.02e at subsample %.02e",
+                                n_distinct(out_a$c),
                                 out_a$run_length[1], out_a$sample_interval[1],
                                 out_b$run_length[1], out_b$sample_interval[1]))
     for (scales in c("free", "fixed")) {
@@ -376,13 +384,14 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
 }
 
 make_estimator_bias <- function(out_a, par_name, par_label) {
+    # TODO: add m to title
     fig <- out_a %>%
         ggplot(aes(x = t, y = bc, fill = as.factor(k), colour = as.factor(k))) +
         geom_point(alpha = 0.6) +
         labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to %.02e; %d coupled chains of length %.02e at sampling interval %.02e",
-                                m, n_distinct(out_a$c), out_a$run_length[1],
+             subtitle = sprintf("Samples k to m; %d coupled chains of length %.02e at sampling interval %.02e",
+                                n_distinct(out_a$c), out_a$run_length[1],
                                 out_a$sample_interval[1]),
              x = "tau",
              y = "bias correction") +
@@ -403,11 +412,18 @@ get_estimator_mse <- function(v, est) {
 }
 
 make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
-    fig_data <- out_a %>%
-        select(-c(cl, tr, c, t, bc)) %>%
+    # TODO: add m to title
+    if (par_name == "root_time") {
+        out_f <- out_a %>%
+            select(-c(c, t, bc))
+    } else {
+        out_f <- out_a %>%
+            select(-c(cl, tr, c, t, bc))
+    }
+    fig_data <- out_f %>%
         nest(s = c(mc, ue)) %>%
-        tibble(mse_mc_1 = NA_real_, mse_mc_n = NA_real_,
-               mse_ue_n = NA_real_)
+        tibble(mse_mc_1 = NA_real_, mse_mc_n = NA_real_, mse_ue_n = NA_real_)
+
     for (i in seq_len(nrow(fig_data))) {
         mc_1 <- fig_data$s[[i]]$mc
         mc_n <- mean(mc_1)
@@ -434,8 +450,8 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
                    inherit.aes = FALSE) +
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to %.02e in %d coupled chains; *_n is average of single chain/pair estimators *_1",
-                                m, length(grid_c)),
+             subtitle = sprintf("Samples k to m in %d coupled chains; *_n is average of single chain/pair estimators *_1",
+                                length(grid_c)),
              x = "k")
      for (scales in c("free", "fixed")) {
          fig +
