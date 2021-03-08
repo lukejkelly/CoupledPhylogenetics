@@ -3,13 +3,14 @@ library("tidyverse")
 library("fs")
 
 source("estimators.R")
-source("coupling-plots.R")
+source("coupling-functions.R")
 source("ipm-bounds.R")
 
-# Set target, e.g. target <- "20201217"
+# Set target, e.g. target <- "20210113"
+target_dir <- file.path("..", "CoupledPhylogeneticFiles", target)
 
 # Make grids of config and run settings
-config_file <- file.path("..", target, "config.R")
+config_file <- file.path(target_dir, "config.R")
 grids <- make_grid(config_file)
 # Coupled shorter runs is a, longer run is b, c is indices of coupled runs
 grid_a <- grids$grid_a
@@ -20,14 +21,14 @@ grid_d <- grid_a
 grid_d$cl <- rep(list(c("5", "6"), c("10", "9")), each = 2)
 grid_d$tr <- grid_a %>%
     select(L, root_time, lambda, mu, beta) %>%
-    pmap(function(...) read_nexus_file(target, ...))
+    pmap(function(...) read_nexus_file(target_dir, ...))
 
 # Target figure and output templates and directories
-fig_dir <- file.path("..", target, "figs")
+fig_dir <- file.path(target_dir, "figs")
 dir_create(fig_dir)
 fig_template <- sprintf("%s/%%s.pdf", fig_dir)
 
-out_dir <- file.path("..", target, "output")
+out_dir <- file.path(target_dir, "output")
 
 ################################################################################
 # Coupling times
