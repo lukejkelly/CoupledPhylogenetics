@@ -26,7 +26,7 @@ make_file_name_ <- function(file_dir, grid, c, d, e) {
 
 read_nexus_file <- function(target_dir, L, root_time, lambda, mu, beta) {
     file_name <- sprintf(
-        file.path("..", target_dir, "data", "L%d_r%e_l%e_m%e_b%e.nex"),
+        file.path(target_dir, "data", "L%d_r%e_l%e_m%e_b%e.nex"),
         L, root_time, lambda, mu, beta
     )
     f <- ape::read.nexus(file_name)
