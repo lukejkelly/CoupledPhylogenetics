@@ -1,0 +1,276 @@
+\ProvidesPackage{luke-macros}
+
+% Referring to things
+\newcommand{\algoref}[1]{Algorithm~\ref{#1}}
+\newcommand{\eqnref}[1]{Equation~\ref{#1}}
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\appref}[1]{Appendix~\ref{#1}}
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+% Probability distributions
+\newcommand{\Dir}[1]{\mathrm{Dir}(#1)}
+\newcommand{\Exp}[1]{\mathrm{Exp}(#1)}
+\newcommand{\Munom}[2]{\mathrm{Multinomial}\left(#1, #2\right)}
+\newcommand{\Pois}[1]{\mathrm{Poisson}(#1)}
+% \newcommand{\Unif}[2]{\mathrm{U}[#1, #2]}
+\newcommand{\Unif}[1]{\mathrm{U}(#1)}
+\newcommand{\UNIF}[1]{\mathrm{U}\left(#1\right)}
+\newcommand{\MatNorm}[3]{\cM\cN(#1,\, #2,\, #3)}
+
+% Random processes
+\newcommand{\DP}[1]{\mathcal{DP}(#1)}
+\newcommand{\GP}[1]{\mathcal{GP}(#1)}
+
+% Spaces
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Rbar}{\mathbb{\bar{R}}}
+\newcommand{\Rnn}{\R_{\geq 0}}
+
+% Generic maths and statistics things
+\DeclareMathOperator*{\given}{\mid}
+\DeclareMathOperator*{\tr}{\mathrm{tr}}
+\DeclareMathOperator*{\diag}{\mathrm{diag}}
+\DeclareMathOperator*{\Var}{\mathrm{Var}}
+\DeclareMathOperator*{\Cov}{\mathrm{Cov}}
+\DeclareMathOperator{\supp}{supp}
+
+\newcommand{\indep}{{\;\bot\!\!\!\!\!\!\bot\;}}
+\newcommand{\eps}{\varepsilon}
+
+\newcommand{\defeq}{\vcentcolon=}
+\newcommand{\eqdef}{=\vcentcolon}
+
+\newcommand{\zeros}{\mathbf{0}}
+\newcommand{\ones}{\mathbf{1}}
+
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\expit}{expit}
+\DeclareMathOperator{\rank}{rank}
+
+\DeclarePairedDelimiterX{\inner}[2]{\langle}{\rangle}{#1, #2}
+\DeclarePairedDelimiterX{\dKLsep}[2]{(}{)}{#1\;\delimsize\|\;#2}
+\newcommand{\dKL}{\mathrm{D_{KL}}\dKLsep}
+
+% Probability, expectation, indicator function
+\DeclareMathOperator*{\EE}{\mathbb{E}}
+\DeclareMathOperator*{\PP}{\mathbb{P}}
+\newcommand{\ind}[1]{\mathbf{1}_{\{#1\}}}
+
+% Vector and operator norms
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\DeclarePairedDelimiterX{\onorm}[1]{\vert\kern-0.25ex\vert\kern-0.25ex\vert}{\vert\kern-0.25ex\vert\kern-0.25ex\vert}{#1}
+
+% Floor and ceiling
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+% Arg min and max
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% Sign operator
+\DeclareMathOperator{\sign}{sign}
+
+% Upright d
+\newcommand{\ud}{\mathrm{d}}
+
+% Bold zero and one
+\newcommand{\bzero}{\boldsymbol{0}}
+\newcommand{\bone}{\boldsymbol{1}}
+
+% Trees
+\newcommand{\edge}[2]{\langle#1, #2\rangle}
+\DeclareMathOperator*{\pa}{\mathrm{pa}}
+\DeclareMathOperator*{\sib}{\mathrm{sib}}
+\DeclareMathOperator*{\off}{\mathrm{off}}
+\DeclareMathOperator*{\cla}{\mathrm{cla}}
+
+
+% Bold lower-case alphabet
+\newcommand{\ba}{\mathbf{a}}
+\newcommand{\bb}{\mathbf{b}}
+\newcommand{\bc}{\mathbf{c}}
+\newcommand{\bd}{\mathbf{d}}
+\newcommand{\be}{\mathbf{e}}
+\newcommand{\bff}{\mathbf{f}}
+\newcommand{\bg}{\mathbf{g}}
+\newcommand{\bh}{\mathbf{h}}
+\newcommand{\bi}{\mathbf{i}}
+\newcommand{\bj}{\mathbf{j}}
+\newcommand{\bk}{\mathbf{k}}
+\newcommand{\bl}{\mathbf{l}}
+\newcommand{\bm}{\mathbf{m}}
+\newcommand{\bn}{\mathbf{n}}
+\newcommand{\bo}{\mathbf{o}}
+\newcommand{\bp}{\mathbf{p}}
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\br}{\mathbf{r}}
+\newcommand{\bs}{\mathbf{s}}
+\newcommand{\bt}{\mathbf{t}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bw}{\mathbf{w}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bz}{\mathbf{z}}
+
+% % Bold upper-case alphabet
+\newcommand{\bA}{\mathbf{A}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bC}{\mathbf{C}}
+\newcommand{\bD}{\mathbf{D}}
+\newcommand{\bE}{\mathbf{E}}
+\newcommand{\bF}{\mathbf{F}}
+\newcommand{\bG}{\mathbf{G}}
+\newcommand{\bH}{\mathbf{H}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bK}{\mathbf{K}}
+\newcommand{\bL}{\mathbf{L}}
+\newcommand{\bM}{\mathbf{M}}
+\newcommand{\bN}{\mathbf{N}}
+\newcommand{\bO}{\mathbf{O}}
+\newcommand{\bP}{\mathbf{P}}
+\newcommand{\bQ}{\mathbf{Q}}
+\newcommand{\bR}{\mathbf{R}}
+\newcommand{\bS}{\mathbf{S}}
+\newcommand{\bT}{\mathbf{T}}
+\newcommand{\bU}{\mathbf{U}}
+\newcommand{\bV}{\mathbf{V}}
+\newcommand{\bW}{\mathbf{W}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bZ}{\mathbf{Z}}
+
+% Caligraphic upper-case alphabet
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\cJ}{\mathcal{J}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cQ}{\mathcal{Q}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\cV}{\mathcal{V}}
+\newcommand{\cW}{\mathcal{W}}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cZ}{\mathcal{Z}}
+
+% % Bold Greek letters
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
+\newcommand{\bgamma}{\boldsymbol{\gamma}}
+\newcommand{\bdelta}{\boldsymbol{\delta}}
+\newcommand{\bepsilon}{\boldsymbol{\epsilon}}
+\newcommand{\bzeta}{\boldsymbol{\zeta}}
+\newcommand{\boldeta}{\boldsymbol{\eta}}
+\newcommand{\btheta}{\boldsymbol{\theta}}
+\newcommand{\biota}{\boldsymbol{\iota}}
+\newcommand{\bkappa}{\boldsymbol{\kappa}}
+\newcommand{\blambda}{\boldsymbol{\lambda}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bnu}{\boldsymbol{\nu}}
+\newcommand{\bxi}{\boldsymbol{\xi}}
+\newcommand{\bpi}{\boldsymbol{\pi}}
+\newcommand{\brho}{\boldsymbol{\rho}}
+\newcommand{\bsigma}{\boldsymbol{\sigma}}
+\newcommand{\btau}{\boldsymbol{\tau}}
+\newcommand{\bupsilon}{\boldsymbol{\upsilon}}
+\newcommand{\bphi}{\boldsymbol{\phi}}
+\newcommand{\bchi}{\boldsymbol{\chi}}
+\newcommand{\bpsi}{\boldsymbol{\psi}}
+\newcommand{\bomega}{\boldsymbol{\omega}}
+
+\newcommand{\bAlpha}{\boldsymbol{\Alpha}}
+\newcommand{\bBeta}{\boldsymbol{\Beta}}
+\newcommand{\bGamma}{\boldsymbol{\Gamma}}
+\newcommand{\bDelta}{\boldsymbol{\Delta}}
+\newcommand{\bEpsilon}{\boldsymbol{\Epsilon}}
+\newcommand{\bZeta}{\boldsymbol{\Zeta}}
+\newcommand{\bEta}{\boldsymbol{\Eta}}
+\newcommand{\bTheta}{\boldsymbol{\Theta}}
+\newcommand{\bIota}{\boldsymbol{\Iota}}
+\newcommand{\bKappa}{\boldsymbol{\Kappa}}
+\newcommand{\bLambda}{\boldsymbol{\Lambda}}
+\newcommand{\bMu}{\boldsymbol{\Mu}}
+\newcommand{\bNu}{\boldsymbol{\Nu}}
+\newcommand{\bXi}{\boldsymbol{\Xi}}
+\newcommand{\bPi}{\boldsymbol{\Pi}}
+\newcommand{\bRho}{\boldsymbol{\Rho}}
+\newcommand{\bSigma}{\boldsymbol{\Sigma}}
+\newcommand{\bTau}{\boldsymbol{\Tau}}
+\newcommand{\bUpsilon}{\boldsymbol{\Upsilon}}
+\newcommand{\bPhi}{\boldsymbol{\Phi}}
+\newcommand{\bChi}{\boldsymbol{\Chi}}
+\newcommand{\bPsi}{\boldsymbol{\Psi}}
+\newcommand{\bOmega}{\boldsymbol{\Omega}}
+
+
+% Defining theorem styles, etc.
+\newtheorem{mytheorem}{Theorem}
+\newtheorem{mydef}{Definition}
+\newtheorem{mylemma}{Lemma}
+\newtheorem{myalgorithm}{Algorithm}
+
+% \theoremstyle{definition}
+% \newtheorem{myevent}{Event}
+%
+% \newtheorem{myremark}{Remark}
+% % \numberwithin{myremark}{section}
+%
+% % Property style
+% \newtheoremstyle{mypropstyle}% name of the style to be used
+%   {}% measure of space to leave above the theorem. E.g.: 3pt
+%   {}% measure of space to leave below the theorem. E.g.: 3pt
+%   {}% name of font to use in the body of the theorem
+%   {}% measure of space to indent
+%   {}% name of head font
+%   {}% punctuation between head and body
+%   { }% space after theorem head; " " = normal interword space
+%   {\textbf{\thmname{#1} \thmnumber{T#2}} (\thmnote{#3})\textbf{.}}% Manually specify head
+% \theoremstyle{mypropstyle}
+% \newtheorem{myprop}{Property}
+%
+% % Assumption style
+% \newtheoremstyle{myassumpstyle}% name of the style to be used
+%   {}% measure of space to leave above the theorem. E.g.: 3pt
+%   {}% measure of space to leave below the theorem. E.g.: 3pt
+%   {}% name of font to use in the body of the theorem
+%   {}% measure of space to indent
+%   {}% name of head font
+%   {}% punctuation between head and body
+%   { }% space after theorem head; " " = normal interword space
+%   {\textbf{\thmname{#1}:}}% Manually specify head
+% \theoremstyle{myassumpstyle}
+% \newtheorem{myassumption}{Assumption}
+
+% \newtheoremstyle{myquestionstyle}% name of the style to be used
+%   {}% measure of space to leave above the theorem. E.g.: 3pt
+%   {}% measure of space to leave below the theorem. E.g.: 3pt
+%   {}% name of font to use in the body of the theorem
+%   {}% measure of space to indent
+%   {}% name of head font
+%   {}% punctuation between head and body
+%   { }% space after theorem head; " " = normal interword space
+%   {\textbf{\thmname{#1}:}}% Manually specify head
+% \theoremstyle{myquestionstyle}
+% \newtheorem{myquestion}{Question}
