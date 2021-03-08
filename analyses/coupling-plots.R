@@ -7,7 +7,7 @@ source("coupling-functions.R")
 source("ipm-bounds.R")
 
 # Set target, e.g. target <- "20210113"
-target_dir <- file.path("..", "CoupledPhylogeneticFiles", target)
+target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
 config_file <- file.path(target_dir, "config.R")
