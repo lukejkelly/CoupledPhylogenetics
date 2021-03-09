@@ -1,4 +1,5 @@
 function sampleSyntheticData(s, lambda, mu, beta)
+    % Sample synthetic data and write it to file
     global ROOT
 
     % Parameters of SDLT process
@@ -37,13 +38,12 @@ function sampleSyntheticData(s, lambda, mu, beta)
     %                  'adamrange', [], ...
     %                  'language', {{'1', '2', '3', '4', '5'}})};
 
-    % Write to Nexus file
+    % Write to Nexus file using this command
     % sFile = stype2nexus(s, '', 'BOTH', '', clades);
 
-    [file_dir, nex_stem] = fileDest(L, root_time, lambda, mu, beta);
+    [file_dir, ~, nex_stem] = fileDest(L, root_time, lambda, mu, beta);
 
     fid = fopen(fullfile(file_dir, 'data', sprintf('%s.nex', nex_stem)), 'w');
-    fprintf(fid, stype2nexus(s, 'Estimate coupling distributions', 'BOTH', ''));
-    % fprintf(fid, stype2nexus(s, 'Estimate coupling distributions', 'BOTH', '', clades));
+    fprintf(fid, stype2nexus(s, '', 'BOTH', ''));
     fclose(fid);
 end
