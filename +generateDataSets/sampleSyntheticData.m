@@ -14,6 +14,11 @@ function sampleSyntheticData(s, lambda, mu, beta)
     % Removing empty site-patterns
     D = D(sum(D, 2) > 0, :);
 
+    % % Masking matrix to incorporate missing data
+    % xi = [s(rl).xi];
+    % M = (rand(size(D)) > repmat(xi, size(D, 1), 1));
+    % D(M) = 2;
+
     % Adding data to leaves
     for l = 1:L
       s(rl(l)).dat = D(:, L + 1 - l)';

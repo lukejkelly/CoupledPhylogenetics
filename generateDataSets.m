@@ -19,20 +19,29 @@ for i = 1:numel(grid_L)
     % We'll use the same tree for each parameter combination
     s = generateDataSets.sampleSyntheticTree(L, root_time);
     for j = 1:numel(grid_lambda)
-        [lambda, mu, beta] = deal(grid_lambda(j), grid_mu(j), grid_beta(j));
+        [lambda, mu, beta, lag] = deal(grid_lambda(j), grid_mu(j),
+                                       grid_beta(j), grid_lag(j));
         generateDataSets.sampleSyntheticData(s, lambda, mu, beta);
         for k = 1:numel(grid_run_length)
             [run_length, sample_interval] = deal(grid_run_length(k), ...
                                                  grid_sample_interval(k));
-            generateDataSets.makeParFile(L, root_time, lambda, mu, beta, ...
-                                         run_length, sample_interval);
+            if k == 1
+                for lag = list_lag
+                    generateDataSets.makeParFile(L, root_time, lambda, mu, ...
+                                                 beta, run_length, ...
+                                                 sample_interval, lag);
+                end
+            else
+                generateDataSets.makeParFile(L, root_time, lambda, mu, beta, ...
+                                             run_length, sample_interval);
+            end
         end
     end
 end
 
 generateDataSets.writeConfig(dest_dir, list_L, list_root_time, list_lambda, ...
-    list_mu, list_beta, grid_run_length, grid_sample_interval);
+    list_mu, list_beta, grid_run_length, grid_sample_interval, list_lag);
 generateDataSets.makeSubmitFile(dest_dir, list_L, list_root_time, ...
-    list_lambda, list_mu, list_beta, grid_run_length, grid_sample_interval);
+    list_lambda, list_mu, list_beta, grid_run_length, grid_sample_interval, list_lag);
 generateDataSets.makeJobFile(dest_dir, 'a');
 generateDataSets.makeJobFile(dest_dir, 'b');

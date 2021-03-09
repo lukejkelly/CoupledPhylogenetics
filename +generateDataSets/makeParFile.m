@@ -1,8 +1,16 @@
 function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
-        sample_interval)
+        sample_interval, lag)
 
-    [file_dir, nex_stem, par_stem] = generateDataSets.fileDest(...
-        L, root_time, lambda, mu, beta, run_length, sample_interval);
+    coupling = exist('lag', 'var');
+    if coupling
+        [file_dir, nex_stem, par_stem] = generateDataSets.fileDest(...
+            L, root_time, lambda, mu, beta, run_length, sample_interval, lag);
+    else
+        lag = nan;
+        [file_dir, nex_stem, par_stem] = generateDataSets.fileDest(...
+            L, root_time, lambda, mu, beta, run_length, sample_interval);
+    end
+
     file_nex = sprintf('%s.nex', nex_stem);
     file_par = sprintf('%s.par', par_stem);
 
@@ -84,7 +92,12 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, '%% FULL PATH FOR DIRECTORY TO OUTPUT FILES\n');
     fprintf(fid, 'Output_path_name = %s/output/\n', file_dir);
     fprintf(fid, '\n');
-    fprintf(fid, '%% Gaps are treated as missing data. To change this, edit GlobalValues.m.\n');
+    fprintf(fid, '%% Gaps are treated as missing data. To change this, edit GlobalValues.m.\n\n');
+
+    % Coupling and lags LJK 19/2/21
+    fprintf(fid, 'Coupled_markov_chains = %g\n', coupling);
+    fprintf(fid, '%% FOLLOWING IS IGNORED WHEN Coupled_markov_chains == 0\n');
+    fprintf(fid, 'Coupling_lag = %g\n', lag);
 
     fclose(fid);
 
