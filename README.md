@@ -1,13 +1,29 @@
 # CoupledPhylogenetics
 
-Running experiments with marginal/coupled chains in `TraitLabSDLT-coupled`:
- * TODO: data/ contains Matlab code to generate synthetic data sets, parameter files and CEREMADE cluster submission scripts
-   * edit +generateDataSets/paramConfig.m to configure the synthetic data generation
- * each experiment is a folder named <yyyymmdd>
-    * data/ holds the .nex files and pars/ the corresponding .par files
-    * output/ contains the output of running TraitLabSDLT-coupled and figs/ any figures
-    * config.R is +generateDataSets/paramConfig.m in a format that R can read
-    * execute submit.sh on the CEREMADE cluster to add experiments to the queue, job-a.pbs is for the coupled chains and job-b.pbs the long, single chains to get ground truth estimates
- * analyses/ is a mixture of scripts to analyse output and create figures in <experiment>/figs for a single experiment or figs/ for multiple experiments.
+## Running experiments with marginal/coupled chains in `TraitLabSDLT-coupled`
+The code uses  relative path names so `TraitLabSDLT-coupled` and `CoupledPhylogenetics` must be in the same directory.
 
- The docs/ folder includes various documents we've created to describe our method. Some are now on Overleaf so I will delete them shortly.
+### Set up experiment
+Matlab code to generate synthetic data sets, parameter files and CEREMADE cluster submission scripts is in `simulate/`.
+
+Edit `paramConfig.m` to configure the synthetic data generation and parameters for experiments
+
+Each experiment is a folder named `<yyyymmdd>` (which is `.gitignore`d)
+    * `data/` holds the `.nex` files and `pars/` the corresponding `.par` files
+    * `output/` contains the output of running `TraitLabSDLT-coupled` and `figs/` any figures created by the scripts in `analyses/`
+    * `config.R` is `make-experiments/paramConfig.m` in a format that `R` can read
+    * change the PBS directives in `submit.sh`, if necessary
+    * `job-a.pbs` is for the coupled chains and `job-b.pbs` the long, single chains to get ground truth estimates.
+
+### Run experiment
+From the directory of the experiment, execute `bash submit.sh` to submit the jobs to the queue.
+
+If you are rerunning jobs in the same folder then make sure to `rm output/*` as `batchTraitLab` will not overwrite existing log files.
+
+### Analyse output
+The `analyses/`` directory contains scripts to analyse output and create figures in `<experiment>/figs` for a single experiment, or `figs/` for multiple experiments.
+
+## Documents
+ The `docs/` folder includes various documents we've created to describe our method, such as the kernel which includes snippets of code from `TraitLabSDLT-coupled`.
+
+ TODO: Some of these documents are now on Overleaf so I will delete them shortly.

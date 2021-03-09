@@ -1,13 +1,13 @@
-function makeSubmitFile(dest_dir, list_L, list_root_time, list_lambda, ...
-        list_mu, list_beta, grid_run_length, grid_sample_interval, grid_lag)
+function makeSubmitFile(list_L, list_root_time, list_lambda, list_mu, ...
+        list_beta, list_lag, n_chains)
 
     job_name = '-N ${L}-${ROOT_TIME}-${LAMBDA}-${MU}-${BETA}';
     var_list = '-v L=${L},ROOT_TIME=${ROOT_TIME},LAMBDA=${LAMBDA},MU=${MU},BETA=${BETA}';
 
-    pars_a = '-t 1-100 -l walltime=24:00:00';
-    pars_b = '-t 0 -l walltime=240:00:00';
+    pars_a = sprintf('-t 1-%d', n_chains);
+    pars_b = '';
 
-    fid = fopen(fullfile(dest_dir, 'submit.sh'), 'w');
+    fid = fopen(fullfile(fileDest(), 'submit.sh'), 'w');
 
     fprintf(fid, '#!/bin/bash\n');
 
@@ -27,17 +27,18 @@ function makeSubmitFile(dest_dir, list_L, list_root_time, list_lambda, ...
     fprintf(fid, 'for BETA in%s; do\n', sprintf(' %e', list_beta));
 
     fprintf(fid, '%s', repmat(' ', 1, 20));
-    for lag = grid_lag
-        fprintf(fid, ...
-                'qsub %s %s %s,RUN_LENGTH=%e,SAMPLE_INTERVAL=%e,LAG=%e job-a.pbs\n', ...
-                job_name, pars_a, var_list, grid_run_length(1), ...
-                grid_sample_interval(1), lag);
-    end
-    fprintf(fid, '%s', repmat(' ', 1, 20));
+    fprintf(fid, 'for LAG in%s; do\n', sprintf(' %e', list_lag));
+
+    % Coupled chains get lag argument
+    fprintf(fid, '%s', repmat(' ', 1, 24));
     fprintf(fid, ...
-            'qsub %s %s %s,RUN_LENGTH=%e,SAMPLE_INTERVAL=%e job-b.pbs\n', ...
-            job_name, pars_b, var_list, grid_run_length(2), ...
-            grid_sample_interval(2));
+            'qsub %s-${LAG} %s %s,LAG=${LAG} job-a.pbs\n', ...
+            job_name, pars_a, var_list);
+    fprintf(fid, '%sdone\n', repmat(' ', 1, 20));
+
+    % Ground truth longer chain
+    fprintf(fid, '%s', repmat(' ', 1, 20));
+    fprintf(fid, 'qsub %s %s %s job-b.pbs\n', job_name, pars_b, var_list);
 
     fprintf(fid, '%sdone\n', repmat(' ', 1, 16));
     fprintf(fid, '%sdone\n', repmat(' ', 1, 12));
