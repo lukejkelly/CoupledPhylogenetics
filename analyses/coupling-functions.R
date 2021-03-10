@@ -332,7 +332,7 @@ make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
                                 par_name, par_label, k = NULL, m = NULL) {
 
     out_a <- get_estimators(out_dir, grid_a, grid_c, grid_d, par_name, k, m)
-    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name, k, m)
+    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
 
     make_estimator_hist(out_a, out_b, par_name, par_label)
     make_estimator_bias(out_a, par_name, par_label)
@@ -429,8 +429,12 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
         mc_n <- mean(mc_1)
         ue_n <- mean(fig_data$s[[i]]$ue)
 
-        v <- semi_join(out_b, fig_data[i, ], c("L", "root_time", "lambda",
-                                               "mu", "beta"))$mc
+        v <- out_b %>%
+            semi_join(
+                fig_data[i, ],
+                c("L", "root_time", "lambda", "mu", "beta")
+            ) %>%
+            pull(mc)
         fig_data$mse_mc_1[i] <- get_estimator_mse(v, mc_1)
         fig_data$mse_mc_n[i] <- get_estimator_mse(v, mc_n)
         fig_data$mse_ue_n[i] <- get_estimator_mse(v, ue_n)
