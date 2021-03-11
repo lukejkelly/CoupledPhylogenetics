@@ -36,7 +36,7 @@ unbiased_estimator <- function(x, y, k, m, t) {
         y_inds <- ind_y(k, t - 2)
         w <- pmin(1, (w_inds - k) / (m - k + 1))
         d <- x[x_inds] - y[y_inds]
-        bc <- w %*% d
+        bc <- sum(w * d)
     }
     ue <- mc + bc
     return(list(mc = mc, bc = bc, ue = ue))
