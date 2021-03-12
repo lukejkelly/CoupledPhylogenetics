@@ -99,3 +99,9 @@ make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "clade support",
                     "clade")
 make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "topology support",
                     "topology")
+
+trace_estimator(out_dir, grid_a, grid_b, grid_c, NULL, "root_time", "root")
+trace_estimator(out_dir, grid_a, grid_b, grid_c, grid_d, "clade support",
+                    "clade")
+trace_estimator(out_dir, grid_a, grid_b, grid_c, grid_d, "topology support",
+                    "topology")
