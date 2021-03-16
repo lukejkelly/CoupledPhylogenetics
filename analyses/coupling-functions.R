@@ -275,24 +275,11 @@ get_estimators <- function(out_dir, grid_a, grid_c, grid_d, par_name, k = NULL,
         nest(k = k, s = c(mc, bc, ue))
     for (i in seq_len(nrow(out))) {
         svMisc::progress(i, nrow(out))
-        if (is.null(grid_d)) {
-            x <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_x")[[par_name]]
-            y <- get_pars_(out_dir, out[i, 1:7], out$c[i], "_y")[[par_name]]
-        } else {
-            t_x <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_x")
-            t_y <- get_trees_(out_dir, out[i, 1:7], out$c[i], "_y")
-            if (par_name == "topology support") {
-                v <- out$tr[[i]]
-                x <- map_lgl(t_x, all.equal, v, FALSE)
-                y <- map_lgl(t_y, all.equal, v, FALSE)
-            } else if (par_name == "clade support") {
-                v <- out$cl[[i]]
-                x <- map_lgl(t_x, is.monophyletic, v)
-                y <- map_lgl(t_y, is.monophyletic, v)
-            } else {
-                stop("Incorrect par_name")
-            }
-        }
+
+        xy <- get_samples_for_estimators(out_dir, out[i, ], par_name)
+        x <- xy$x
+        y <- xy$y
+
         out$t[i] <- get_tau(x, y)
         out$s[[i]] <- map_dfr(k, ~unbiased_estimator(x, y, ., m, out$t[i]))
     }
@@ -301,9 +288,33 @@ get_estimators <- function(out_dir, grid_a, grid_c, grid_d, par_name, k = NULL,
     return(out)
 }
 
+get_samples_for_estimators <- function(out_dir, out_i, par_name) {
+    if (par_name == "root_time") {
+        x <- get_pars_(out_dir, out_i[1:7], out_i$c, "_x")[[par_name]]
+        y <- get_pars_(out_dir, out_i[1:7], out_i$c, "_y")[[par_name]]
+    } else {
+        t_x <- get_trees_(out_dir, out_i[1:7], out_i$c, "_x")
+        t_y <- get_trees_(out_dir, out_i[1:7], out_i$c, "_y")
+        if (par_name == "topology support") {
+            # TODO: check this
+            v <- out_i$tr[[1]]
+            x <- purrr::map_lgl(t_x, all.equal, v, FALSE)
+            y <- purrr::map_lgl(t_y, all.equal, v, FALSE)
+        } else if (par_name == "clade support") {
+            # TODO: check this
+            v <- out_i$cl[[1]]
+            x <- purrr::map_lgl(t_x, ape::is.monophyletic, v)
+            y <- purrr::map_lgl(t_y, ape::is.monophyletic, v)
+        } else {
+            stop("Incorrect par_name")
+        }
+    }
+    return(list(x = x, y = y))
+}
+
 estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
     m <- floor(grid_b$run_length[1] / grid_b$sample_interval[1])
-    k <- floor(m / 10)
+    k <- floor(m / 2)
 
     out <- tibble(grid_b, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
@@ -465,4 +476,101 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
                         sprintf("%s-mse_axes-%s", par_label, scales)),
                 width = 8, height = 8)
      }
+}
+
+trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
+                                par_name, par_label) {
+
+    m <- grid_a$run_length[1] / grid_a$sample_interval[1]
+    k <- floor(m * c(1 / 10, 1 / 5, 2 / 5))
+
+    if (is.null(grid_d)) {
+        out_l <- grid_a
+    } else {
+        out_l <- grid_d
+    }
+    out_r <- tibble(k = k, m = map(k, ~seq.int(. + 100, m))) %>%
+        unnest(m) %>%
+        tibble(mc = NA_real_, bc = NA_real_, ue = NA_real_)
+    fig_data <- tidyr::expand_grid(out_l, c = grid_c, out_r) %>%
+        nest(km = k:m, s = mc:ue)
+
+    # get estimators for each combination of k and m
+    for (i in seq_len(nrow(fig_data))) {
+        svMisc::progress(i, nrow(fig_data))
+
+        xy <- get_samples_for_estimators(out_dir, fig_data[i, ], par_name)
+        x <- xy$x
+        y <- xy$y
+        t <- get_tau(x, y)
+
+        fig_data$s[[i]] <- map2_dfr(
+            fig_data$km[[i]]$k,
+            fig_data$km[[i]]$m,
+            ~unbiased_estimator(x, y, .x, .y, t)
+        )
+    }
+    message("estimator terms computed")
+
+    # get mse for each estimator and sd of bias correction
+    fig_data <- fig_data %>%
+        unnest(c(km, s)) %>%
+        nest(s = c(c, mc:ue)) %>%
+        tibble(mse_mc_1 = NA_real_, mse_mc_n = NA_real_, mse_ue_n = NA_real_)
+    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
+
+    for (i in seq_len(nrow(fig_data))) {
+        svMisc::progress(i, nrow(fig_data))
+
+        mc_1 <- fig_data$s[[i]]$mc
+        mc_n <- mean(mc_1)
+        ue_n <- mean(fig_data$s[[i]]$ue)
+
+        v <- out_b %>%
+            semi_join(
+                fig_data[i, ],
+                c("L", "root_time", "lambda", "mu", "beta")
+            ) %>%
+            pull(mc)
+        fig_data$mse_mc_1[i] <- get_estimator_mse(v, mc_1)
+        fig_data$mse_mc_n[i] <- get_estimator_mse(v, mc_n)
+        fig_data$mse_ue_n[i] <- get_estimator_mse(v, ue_n)
+    }
+    message("mse terms computed")
+
+    fig1 <- fig_data %>%
+        pivot_longer(c(mse_mc_1, mse_mc_n, mse_ue_n), "estimator",
+                     names_prefix = "mse_", values_to = "mse") %>%
+        ggplot(aes(x = m, y = mse, colour = as.factor(k),
+                   linetype = estimator)) +
+        geom_line(alpha = 0.75) +
+        labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s as k and m vary",
+                             par_name),
+             subtitle = sprintf("Samples k to m in n = %d coupled chains",
+                                length(grid_c)),
+             x = "m",
+             colour = "k") +
+         scale_y_continuous(trans = "log1p") +
+         facet_wrap(~ L + lambda, ncol = 2, scales = "free",
+                    labeller = "label_both") +
+         ggsave(sprintf(fig_template, sprintf("%s-mse-trace", par_label)),
+                width = 8, height = 8)
+
+    # plot sd of bc
+    fig_data$sd_bc <- map_dbl(fig_data$s, ~sd(.$bc))
+    fig <- fig_data %>%
+        ggplot(aes(x = m, y = sd_bc, colour = as.factor(k))) +
+        geom_line(alpha = 0.75) +
+        labs(title = sprintf("SD of bias correction (bc) in unbiased estimators of %s as k and m vary",
+                             par_name),
+             subtitle = sprintf("Samples k to m in n = %d coupled chains",
+                                length(grid_c)),
+             x = "m",
+             y = "sd(bc)",
+             colour = "k") +
+         scale_y_continuous(trans = "log1p") +
+         facet_wrap(~ L + lambda, ncol = 2, scales = "free",
+                    labeller = "label_both") +
+         ggsave(sprintf(fig_template, sprintf("%s-bc-trace", par_label)),
+                width = 8, height = 8)
 }
