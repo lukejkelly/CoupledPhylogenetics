@@ -7,4 +7,4 @@
 #PBS -o log/$PBS_JOBID
 #PBS -j oe
 
-Rscript ../../src/tree_metrics.R $TARGET
+Rscript ../../analyses/tree_metrics.R $TARGET
