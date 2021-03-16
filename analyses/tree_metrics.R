@@ -1,14 +1,20 @@
-#!/usr/bin/Rscript
+compute_tree_distances <- function(out_dir, grid_a) {
 
-library("ape")
-library("purrr")
-library("readr")
+    for (i in seq_len(nrow(grid_a))) {
+        svMisc::progress(i, nrow(grid_a))
+        grid_a_i <- grid_a[i, ]
 
-target <- commandArgs(TRUE)
+        x <- get_trees_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_x")
+        y <- get_trees_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_y")
 
-x <- read.tree(sprintf("%s_%s.nex", target, "x"), skip = 7, comment.char = "#")
-y <- read.tree(sprintf("%s_%s.nex", target, "y"), skip = 7, comment.char = "#")
+        lag_offset <- grid_a_i$lag / grid_a_i$sample_interval
 
-d <- map2_dbl(x[-1], y, dist.topo, "score")
+        d <- purrr::map2_dbl(x[-seq_len(lag_offset)], y, ape::dist.topo,
+                             "score")
 
-write_lines(d, sprintf("%s.dist", target))
+        output_file_name <- make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
+                                            grid_a_i$c, "", "dist")
+        readr::write_lines(d, output_file_name)
+    }
+    message("tree distances computed")
+}
