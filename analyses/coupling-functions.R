@@ -2,25 +2,31 @@ library("tidyverse")
 library("ape")
 
 # Functions to construct file names and paths
-get_file_template <- function() {
-    file_template <- "L%d_r%e_l%e_m%e_b%e_n%e_s%e-%d%s.%s"
-    return(file_template)
+get_file_template_a <- function() {
+    file_template_a <- "L%d_r%e_l%e_m%e_b%e_l%e-%d%s.%s"
+    return(file_template_a)
+}
+get_file_template_b <- function() {
+    file_template_b <- "L%d_r%e_l%e_m%e_b%e.%s"
+    return(file_template_b)
 }
 
-make_file_name <- function(file_dir, L, root_time, lambda, mu, beta, run_length,
-                           sample_interval, c, d, e) {
-    # Run index is c, decorator d and ending e
-    file_name <- file.path(
-        file_dir,
-        sprintf(get_file_template(), L, root_time, lambda,
-                mu, beta, run_length, sample_interval, c, d, e))
-    return(file_name)
+make_file_name <- function(file_dir, L, root_time, lambda, mu, beta,
+                           lag = NULL, c, d, e) {
+    # Run index is c, decorator d = "x" or "y" and ending e
+    if (is.null(lag)) {
+        file_name <- sprintf(get_file_template_b(),
+                             L, root_time, lambda, mu, beta, e)
+    } else {
+        file_name <- sprintf(get_file_template_a(),
+                             L, root_time, lambda, mu, beta, lag, c, d, e)
+    }
+    return(file.path(file_dir, file_name))
 }
 
-make_file_name_ <- function(file_dir, grid, c, d, e) {
+make_file_name_ <- function(file_dir, grid, lag, c, d, e) {
     file_name <- make_file_name(file_dir, grid$L, grid$root_time, grid$lambda,
-                                grid$mu, grid$beta, grid$run_length,
-                                grid$sample_interval, c, d, e)
+                                grid$mu, grid$beta, lag, c, d, e)
     return(file_name)
 }
 
@@ -45,8 +51,8 @@ get_trees <- function(tree_file) {
     return(trees)
 }
 
-get_trees_ <- function(file_dir, grid, c, d) {
-    file_name <- make_file_name_(file_dir, grid, c, d, "nex")
+get_trees_ <- function(file_dir, grid, lag, c, d) {
+    file_name <- make_file_name_(file_dir, grid, lag, c, d, "nex")
     trees <- get_trees(file_name)
     return(trees)
 }
@@ -65,8 +71,8 @@ get_pars <- function(par_file) {
     return(pars)
 }
 
-get_pars_ <- function(file_dir, grid, c, d) {
-    file_name <- make_file_name_(file_dir, grid, c, d, "txt")
+get_pars_ <- function(file_dir, grid, lag, c, d) {
+    file_name <- make_file_name_(file_dir, grid, lag, c, d, "txt")
     pars <- get_pars(file_name)
     return(pars)
 }
@@ -77,58 +83,57 @@ make_grid <- function(config_file) {
     grid_config <- expand_grid(L = list_L, root_time = list_root_time,
                                lambda = list_lambda, mu = list_mu,
                                beta = list_beta)
-    grid_a <- expand_grid(grid_config, run_length = grid_run_length[1],
-                          sample_interval = grid_sample_interval[1])
-    grid_b <- expand_grid(grid_config, run_length = grid_run_length[2],
-                          sample_interval = grid_sample_interval[2])
-    return(list(grid_a = grid_a, grid_b = grid_b, grid_c = grid_c))
+    grid_a <- expand_grid(grid_config, run_length = list_run_length$coupled,
+                          sample_interval = list_sample_interval$coupled,
+                          lag = list_lag, c = list_c)
+    grid_b <- tibble(grid_config, run_length = list_run_length$marginal,
+                     sample_interval = list_sample_interval$marginal)
+    return(list(grid_a = grid_a, grid_b = grid_b))
 }
 
 # Get coupling time
-get_tau <- function(x, y) {
-    # Assume x offset by 1 index
-    tau <- get_tau_(x[-1] != y)
+get_tau <- function(x, y, lag_offset) {
+    # Assume x offset from y by by lag_offset indices
+    tau <- get_tau_(x[-seq_len(lag_offset)] != y, lag_offset)
     return(tau)
 }
 
-get_tau_ <- function(z) {
-    tau <- dplyr::last(which(z)) + 1
-    if (is.na(tau)) {
-        tau <- 1
-    } else if (tau > length(z)) {
-        tau <- NA_integer_
+get_tau_ <- function(z, lag_offset) {
+    # z[i] = x[i - lag_offset] != y[i]
+    t_off <- dplyr::last(which(z))
+    if (is.na(t_off)) {
+        t_off <- 0
+    } else if (t_off == length(z)) {
+        stop("chains did not couple")
     }
+    tau <- t_off + lag_offset
     return(tau)
 }
 
 # Making coupling time figures
-get_coupling_times <- function(out_dir, grid_a, grid_c) {
-    tau <- matrix(NA_integer_, nrow(grid_a), length(grid_c))
-    for (i in seq_len(nrow(tau))) {
-        svMisc::progress(i, nrow(tau))
+get_coupling_times <- function(out_dir, grid_a) {
+    tau <- matrix(NA_integer_, nrow(grid_a))
+    for (i in seq_along(tau)) {
+        svMisc::progress(i, length(tau))
         grid_a_i <- grid_a[i, ]
-        for (j in seq_along(grid_c)) {
-            grid_c_j <- grid_c[j]
-            # sampled x and y
-            x <- get_pars_(out_dir, grid_a_i, grid_c_j, "_x")
-            y <- get_pars_(out_dir, grid_a_i, grid_c_j, "_y")
-            # pre-computed tree distances
-            z <- read.table(make_file_name_(out_dir, grid_a_i, grid_c_j, "",
-                            "dist"))
 
-            tau_p <- get_tau(x$log_prior, y$log_prior)
-            tau_l <- get_tau(x$integrated_llkd, y$integrated_llkd)
-            tau_r <- get_tau(x$root_time, y$root_time)
-            tau_t <- get_tau_(z != 0)
+        # sampled x and y
+        x <- get_pars_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_x")
+        y <- get_pars_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_y")
+        # pre-computed tree distances
+        z <- read.table(make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
+                                        grid_a_i$c, "", "dist"))
 
-            tau[i, j] <- max(c(tau_p, tau_l, tau_r, tau_t))
-        }
+        lag_offset <- grid_a_i$lag / grid_a_i$sample_interval
+
+        tau_p <- get_tau(x$log_prior, y$log_prior, lag_offset)
+        tau_l <- get_tau(x$integrated_llkd, y$integrated_llkd, lag_offset)
+        tau_r <- get_tau(x$root_time, y$root_time, lag_offset)
+        tau_t <- get_tau_(z != 0, lag_offset)
+        tau[i] <- max(c(tau_p, tau_l, tau_r, tau_t))
     }
     message("coupling times computed")
-    out <- cbind(grid_a, tau = tau) %>%
-        pivot_longer(starts_with("tau"), "samp", names_prefix = "tau.",
-                     values_to = "tau")
-    return(out)
+    return(tau)
 }
 
 make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {

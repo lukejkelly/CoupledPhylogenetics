@@ -21,7 +21,7 @@ From the directory of the experiment, execute `bash submit.sh` to submit the job
 If you are rerunning jobs in the same folder then make sure to `rm output/*` as `batchTraitLab` will not overwrite existing log files.
 
 ### Analyse output
-The `analyses/`` directory contains scripts to analyse output and create figures in `<experiment>/figs` for a single experiment, or `figs/` for multiple experiments.
+The `analyses/` directory contains scripts to analyse output and create figures in `<experiment>/figs` for a single experiment, or `figs/` for multiple experiments.
 
 ## Documents
  The `docs/` folder includes various documents we've created to describe our method, such as the kernel which includes snippets of code from `TraitLabSDLT-coupled`.
