@@ -5,8 +5,9 @@ library("fs")
 source("estimators.R")
 source("coupling-functions.R")
 source("ipm-bounds.R")
+source("tree_metrics.R")
 
-# Set target, e.g. target <- "20210113"
+# Set target, e.g. target <- "20210311"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
@@ -15,11 +16,11 @@ grids <- make_grid(config_file)
 # Coupled shorter runs is a, longer run is b, c is indices of coupled runs
 grid_a <- grids$grid_a
 grid_b <- grids$grid_b
-grid_c <- grids$grid_c
 
-grid_d <- grid_a
-grid_d$cl <- rep(list(c("5", "6"), c("10", "9")), each = 2)
-grid_d$tr <- grid_a %>%
+grid_d <- grid_a %>% nest(s = c(lag, c)) %>% select(-s)
+# grid_d$cl <- rep(list(c("5", "6"), c("10", "9")), each = 2)
+grid_d$cl <- list(c("5", "6"))
+grid_d$tr <- grid_d %>%
     select(L, root_time, lambda, mu, beta) %>%
     pmap(function(...) read_nexus_file(target_dir, ...))
 
@@ -31,8 +32,12 @@ fig_template <- sprintf("%s/%%s.pdf", fig_dir)
 out_dir <- file.path(target_dir, "output")
 
 ################################################################################
+# Compute tree distances and write to file
+compute_tree_distances(out_dir, grid_a)
+
+################################################################################
 # Coupling times
-fig_tau_data <- get_coupling_times(out_dir, grid_a, grid_c)
+grid_a$tau <- get_coupling_times(out_dir, grid_a)
 
 fig_tau <- fig_tau_data %>%
     ggplot(aes(x = tau, fill = as.factor(lambda), colour = NULL)) +

@@ -1,43 +1,51 @@
 # functions to index sample output
-# TODO: add initial lag/subsample once TraitLab is updated
-# currently, lag l = subsample interval s so
-#   x[1] = x_0, x[2] = x_s = x_l, x[3] = y_2s, ..., x[n+2] = x_(n+1)s
-#               y[2] = y_0,       y[2] = y_s, ...,  y[n+1] = y_ns,
+# previously, lag l = subsample interval s so
+#   x[1] = x_0, x[2] = x_s = x_l, x[3] = y_2s, ..., x[n+1] = x_ns
+#               y[1] = y_0,       y[2] = y_s, ...,    y[n] = y_(n-1)s,
 # where we have vertically aligned the coupled states
-# this will shortly change to allow l = ts so
-#   x[1] = x_0, ..., x[t+1] = x_ts = x_l, ..., x_[t+n+1] = x_(n+t)s
-#                      y[1] = y_0,        ...,   y_[n+1] = y_ns
+# this has now changed to allow l = ks so
+#   x[1] = x_0, ..., x[k+1] = x_ks = x_l, ...,   x_[n+1] = x_ns
+#                      y[1] = y_0,        ..., y_[n+1-k] = y_(n-k)s
 # all else equal, the ground truth chain z has the same indexing as y
 
-ind_x <- function(k, m) {
-    x_inds <- seq.int(k, m) + 1
-    return(x_inds)
+ind0 <- function(k, m = NULL) {
+    # outputs are indexed from 0, k can be a sequence if m is NULL
+    if (is.null(m)) {
+        inds <- k + 1
+    } else {
+        inds <- seq.int(k, m) + 1
+    }
+    return(inds)
 }
-ind_y <- function(k, m) {
-    y_inds <- seq.int(k, m) + 1
-    return(y_inds)
-}
-ind_z <- ind_y
 
 monte_carlo_estimator <- function(x, k, m) {
     # (x_k + ... + x_m) / (m - k + 1)
-    mc <- mean(x[ind_x(k, m)])
+    mc <- mean(x[ind0(k, m)])
     return(mc)
 }
 
-unbiased_estimator <- function(x, y, k, m, t) {
-    # monte carlo term mc(x_k:m) + bias correction bc(x_(k+1):(t-1), y_k:(t-2))
+unbiased_estimator <- function(x, y, k, m, tau, lag) {
+    # monte carlo estimator + bias correction
     mc <- monte_carlo_estimator(x, k, m)
-    if (k + 1 > t - 1) {
-        bc <- 0
-    } else {
-        w_inds <- seq.int(k + 1, t - 1)
-        x_inds <- ind_x(k + 1, t - 1)
-        y_inds <- ind_y(k, t - 2)
-        w <- pmin(1, (w_inds - k) / (m - k + 1))
-        d <- x[x_inds] - y[y_inds]
-        bc <- sum(w * d)
-    }
+    bc <- bias_correction(x, y, k, m, tau, lag)
     ue <- mc + bc
     return(list(mc = mc, bc = bc, ue = ue))
+}
+
+bias_correction <- function(x, y, k, m, tau, lag) {
+    bc <- 0
+    for (t in seq.int(k, m)) {
+        j_max <- ceiling((tau - lag - t) / lag)
+        if (j_max > 0) {
+            j_inds <- seq_len(j_max)
+            x_inds <- ind0(t + j_inds * lag)
+            y_inds <- ind0(t + (j_inds - 1) * lag)
+            bc_t <- sum(x[x_inds] - y[y_inds])
+        } else {
+            bc_t <- 0
+        }
+        bc <- bc + bc_t
+    }
+    bc <- bc / (m - k + 1)
+    return(bc)
 }
