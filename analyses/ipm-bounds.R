@@ -3,13 +3,15 @@ tv_bound_estimator <- function(tau, lag, t) {
     return(d)
 }
 
-w1_bound_estimators <- function(tau, lag, iters, x, y) {
-    ds <- tv_bound_estimator(tau, lag, iters)
-    ws <- double(length(iters))
-    for (i in seq_along(ws)) {
-        x_inds <- iters[i] + 1 + seq_len(ds[i])
-        y_inds <- x_inds - 1
-        ws[i] <- sum(abs(x[x_inds] - y[y_inds]))
+w1_bound_estimator <- function(x, y, t, tau, lag) {
+    j_max <- ceiling((tau - lag - t) / lag)
+    if (j_max > 0) {
+        j_inds <- seq_len(j_max)
+        x_inds <- ind0(t + j_inds * lag)
+        y_inds <- ind0(t + (j_inds - 1) * lag)
+        w1 <- sum(abs(x[x_inds] - y[y_inds]))
+    } else {
+        w1 <- 0
     }
-    return(ws)
+    return(w1)
 }
