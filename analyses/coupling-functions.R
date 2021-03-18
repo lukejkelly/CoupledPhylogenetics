@@ -99,7 +99,8 @@ get_tau <- function(x, y, lag_offset) {
 }
 
 get_tau_ <- function(z, lag_offset) {
-    # z[i] = x[i - lag_offset] != y[i]
+    # z[i] <- x[i + lag_offset] != y[i]
+    # last time chains differed since marginally they may couple and decouple
     t_off <- dplyr::last(which(z))
     if (is.na(t_off)) {
         t_off <- 0
