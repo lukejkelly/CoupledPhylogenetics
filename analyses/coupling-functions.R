@@ -222,51 +222,55 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
 }
 
 # Make marginal histograms
-get_marginal_data <- function(out_dir, grid_a, grid_b, grid_c, par_name, k, m) {
+get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
 
-    out_a <- tidyr::expand_grid(grid_a, c = grid_c)
-    out_b <- tidyr::expand_grid(grid_b, c = 0)
-    out_c <- bind_rows(out_a, out_b) %>%
+    out <- bind_rows(grid_a, tibble(grid_b, lag = NA, c = NA)) %>%
         nest(x = -everything())
-    for (i in seq_len(nrow(out_c))) {
-        svMisc::progress(i, nrow(out_c))
-        if (out_c$c[i] == 0) {
-            x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i], "")
-            out_c$x[[i]] <- x[[par_name]][ind_x(k, grid_b$run_length[1] / grid_b$sample_interval[1])]
+    for (i in seq_len(nrow(out))) {
+        svMisc::progress(i, nrow(out))
+        out_i <- out[i, ]
+        if (is.na(out_i$c)) {
+            x <- get_pars_(out_dir, out_i, NULL)[[par_name]]
+            out$x[[i]] <- x[ind0(k, out_i$run_length / out_i$sample_interval)]
 
         } else {
-            x <- get_pars_(out_dir, out_c[i, 1:7], out_c$c[i], "_x")
-            out_c$x[[i]] <- x[[par_name]][ind_x(k, m)]
+            x <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_x")[[par_name]]
+            out$x[[i]] <- x[ind0(k, m)]
         }
     }
     message(sprintf("%s marginal data read", par_name))
-    out <- tidyr::unnest(out_c, x)
+    out <- tidyr::unnest(out, x)
     return(out)
 }
 
-make_marginal_hist <- function(out_dir, grid_a, grid_b, grid_c, par_name,
-                               par_label, k = NULL, m = NULL) {
+make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
+                               k = NULL, m = NULL) {
     if (is.null(m)) {
         m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
     }
     if (is.null(k)) {
         k <- floor(m / 10)
     }
-    out <- get_marginal_data(out_dir, grid_a, grid_b, grid_c, par_name, k, m)
-    fig <- out %>%
-        mutate(type = ifelse(c > 0, "a", "b")) %>%
-        ggplot(aes(x = x, fill = as.factor(type), colour = NULL)) +
-        stat_bin(aes(y = ..density..), bins = 30, position = "dodge") +
-        labs(title = "Marginal distributions",
-             subtitle = sprintf("x-chain samples %.02e to %.02e; (a) %d coupled chains and (b) 10x-longer chain", k, m, length(grid_c)),
-             fill = NULL)
+    out <- get_marginal_data(out_dir, grid_a, grid_b, par_name, k, m)
+    fig_data <- out %>%
+        mutate(type = ifelse(is.na(c), "ground truth",
+                             paste("coupled lag", lag)))
+    fig <- fig_data %>%
+        ggplot(aes(x = x, colour = as.factor(type)), alpha = 0.5, fill = NA) +
+        geom_density(aes()) +
+        labs(title = sprintf("Marginal distribution of %s", par_name),
+             subtitle = sprintf("x-chain samples %.02e to %.02e in %d coupled chains\nground truth chain 10x-longer",
+                                k, m, n_distinct(grid_a$c)),
+             colour = NULL,
+             x = par_label)
     for (scales in c("free", "fixed")) {
         fig +
         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
                    labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-hist_axes-%s", par_label, scales)),
-               width = 8, height = 10, limitsize = FALSE)
+               width = 3 * n_distinct(grid_a$lambda) + 2,
+               height = 3 * n_distinct(grid_a$L))
     }
 }
 

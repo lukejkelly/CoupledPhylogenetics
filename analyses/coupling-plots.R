@@ -99,20 +99,20 @@ make_w1_figure(out_dir, grid_a, grid_d, iters)
 
 ################################################################################
 # Marginal histograms
-make_marginal_hist(out_dir, grid_a, grid_b, grid_c, "integrated_llkd", "llkd")
-make_marginal_hist(out_dir, grid_a, grid_b, grid_c, "root_time", "root")
+make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
+make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 
 ################################################################################
 # Estimators
 
-make_estimator_figs(out_dir, grid_a, grid_b, grid_c, NULL, "root_time", "root")
-make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "clade support",
+make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
+make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
                     "clade")
-make_estimator_figs(out_dir, grid_a, grid_b, grid_c, grid_d, "topology support",
+make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "topology support",
                     "topology")
 
-trace_estimator(out_dir, grid_a, grid_b, grid_c, NULL, "root_time", "root")
-trace_estimator(out_dir, grid_a, grid_b, grid_c, grid_d, "clade support",
+trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
+trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
                     "clade")
-trace_estimator(out_dir, grid_a, grid_b, grid_c, grid_d, "topology support",
+trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
                     "topology")
