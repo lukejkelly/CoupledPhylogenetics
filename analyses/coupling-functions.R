@@ -113,7 +113,7 @@ get_tau_ <- function(z, lag_offset) {
 
 # Making coupling time figures
 get_coupling_times <- function(out_dir, grid_a) {
-    tau <- matrix(NA_integer_, nrow(grid_a))
+    tau <- rep(NA_integer_, nrow(grid_a))
     for (i in seq_along(tau)) {
         svMisc::progress(i, length(tau))
         grid_a_i <- grid_a[i, ]
@@ -137,78 +137,86 @@ get_coupling_times <- function(out_dir, grid_a) {
     return(tau)
 }
 
-make_w1_figure <- function(out_dir, fig_tau_data, grid_d, lag, iters) {
+make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
 
-    w1_data <- expand_grid(fig_tau_data, iter = iters, w1_root = NA_real_,
+    w1_data <- expand_grid(grid_a, iter = iters, w1_root = NA_real_,
                            w1_clade = NA_real_, w1_tree = NA_real_)  %>%
-         group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
-                  samp, tau)
-    w1_keys <- group_keys(w1_data)
-    w1_inds <- group_rows(w1_data)
+        nest(s = c(iter, w1_root, w1_clade, w1_tree))
 
-    for (i in seq_len(nrow(w1_keys))) {
-        svMisc::progress(i, nrow(w1_keys))
-        grid_a_i <- w1_keys[i, 1:7]
-        grid_c_i <- strtoi(w1_keys[i, 8])
-        inds_i <- w1_inds[[i]]
+    for (i in seq_len(nrow(w1_data))) {
+        svMisc::progress(i, nrow(w1_data))
 
-        # Parameters
-        p_x <- get_pars_(out_dir, grid_a_i, grid_c_i, "_x")$root_time
-        p_y <- get_pars_(out_dir, grid_a_i, grid_c_i, "_y")$root_time
-        tau_i <- w1_keys$tau[i]
-        w1_data$w1_root[inds_i] <- w1_bound_estimators(tau_i, lag, iters, p_x,
-                                                       p_y)
+        w1_i <- w1_data[i, ]
+        lag_i <- w1_i$lag
+        c_i <- w1_i$c
+        tau_i <- w1_i$tau
+        si_i <-  w1_i$sample_interval
+
+        # root time
+        p_x <- get_pars_(out_dir, w1_i, lag_i, c_i, "_x")$root_time
+        p_y <- get_pars_(out_dir, w1_i, lag_i, c_i, "_y")$root_time
+
+        w1_data$s[[i]]$w1_root <- map_dbl(
+            w1_data$s[[i]]$iter,
+            ~w1_bound_estimator(p_x, p_y, ., tau_i, lag_i /  si_i)
+        )
 
         # Clades and trees
-        d_i <- plyr::match_df(grid_d, w1_keys[i, ],
+        d_i <- plyr::match_df(grid_d, w1_i,
                               c("L", "root_time", "lambda", "mu", "beta",
                                 "run_length", "sample_interval"))
-        t_x <- get_trees_(out_dir, grid_a_i, grid_c_i, "_x")
-        t_y <- get_trees_(out_dir, grid_a_i, grid_c_i, "_y")
+        t_x <- get_trees_(out_dir, w1_i, lag_i, c_i, "_x")
+        t_y <- get_trees_(out_dir, w1_i, lag_i, c_i, "_y")
 
         c_x <- map_lgl(t_x, is.monophyletic, d_i$cl[[1]])
         c_y <- map_lgl(t_y, is.monophyletic, d_i$cl[[1]])
-        w1_data$w1_clade[inds_i] <- w1_bound_estimators(tau_i, lag, iters, c_x,
-                                                        c_y)
+
+        w1_data$s[[i]]$w1_clade <- map_dbl(
+            w1_data$s[[i]]$iter,
+            ~w1_bound_estimator(c_x, c_y, ., tau_i, lag_i / si_i)
+        )
+
         g_x <- map_lgl(t_x, all.equal, d_i$tr[[1]], FALSE)
         g_y <- map_lgl(t_y, all.equal, d_i$tr[[1]], FALSE)
-        w1_data$w1_tree[inds_i] <- w1_bound_estimators(tau_i, lag, iters, g_x,
-                                                        g_y)
+
+        w1_data$s[[i]]$w1_tree <- map_dbl(
+            w1_data$s[[i]]$iter,
+            ~w1_bound_estimator(g_x, g_y, ., tau_i, lag_i / si_i)
+        )
     }
     message("w1 bounds computed")
 
     fig_w1_data <- w1_data %>%
-        ungroup(samp, tau) %>%
-        select(-c(samp, tau)) %>%
-        group_by(iter, .add = TRUE) %>%
-        summarise(w1_root = mean(w1_root),
-                  w1_clade = mean(w1_clade),
-                  w1_tree = mean(w1_tree),
-                  .groups = "drop") %>%
+        unnest(s) %>%
+        select(-c(tau)) %>%
+        nest(s = c(c, w1_root, w1_clade, w1_tree)) %>%
+        mutate(
+            w1_root = map_dbl(s, ~mean(.$w1_root)),
+            w1_clade = map_dbl(s, ~mean(.$w1_clade)),
+            w1_tree = map_dbl(s, ~mean(.$w1_tree))
+        ) %>%
         pivot_longer(starts_with("w1_"), "stat", names_prefix = "w1_",
                      values_to = "w1") %>%
-        mutate(across("stat", factor, c("root", "clade", "tree", "sum")))
+        mutate(across("stat", factor, c("root", "clade", "tree")))
     fig_w1 <- fig_w1_data %>%
-        ggplot(aes(x = iter, y = w1, colour = as.factor(lambda))) +
-        geom_line(size = 1.5, alpha = 0.75) +
-        guides(colour = guide_legend(title = "lambda")) +
-        labs(title = "W1 bound as leaf count L and birth rate lambda vary",
-             subtitle = sprintf(
-                 "%.02e iterations, coupling lag = %.02e, replications = %d",
-                 w1_keys$run_length[1], w1_keys$sample_interval[1],
-                 n_distinct(w1_keys$samp)),
-             x = "iteration",
-             y = "d_w1")
+        ggplot(aes(x = iter, y = w1, colour = as.factor(lag))) +
+        geom_line(alpha = 0.75) +
+        labs(title = "Estimated W1 bound",
+             subtitle = sprintf("%.02e iterations, replications = %d",
+                                w1_data$run_length[1], n_distinct(w1_data$c)),
+             x = sprintf("iteration / %d", si_a),
+             y = "d_w1",
+             colour = "lag")
     for (scales in c("free", "fixed")) {
         fig_w1 +
-            facet_wrap(~ L + stat, ncol = 3, scales = scales,
+            facet_wrap(~ L + lambda + stat, ncol = 3, scales = scales,
                        labeller = "label_both") +
             ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
-                   width = 10, height = 10)
+                   width = 10, height = 5)
     }
     fig_w1 +
         ylim(0, 2) +
-        facet_wrap(~ L + stat, ncol = 3) +
+        facet_wrap(~ L + lambda + stat, ncol = 3) +
         ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
                height = 10)
 }
