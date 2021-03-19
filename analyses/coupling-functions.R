@@ -275,31 +275,46 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
 }
 
 # Plot estimators
-get_estimators <- function(out_dir, grid_a, grid_c, grid_d, par_name, k = NULL,
+make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_d, par_name,
+                                par_label, k = NULL, m = NULL) {
+
+    out_a <- get_estimators(out_dir, grid_a, grid_d, par_name, k, m)
+    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
+
+    make_estimator_hist(out_a, out_b, par_name, par_label)
+    make_estimator_bias(out_a, par_name, par_label)
+    make_estimator_mse(out_a, out_b, par_name, par_label)
+}
+
+get_estimators <- function(out_dir, grid_a, grid_d, par_name, k = NULL,
                            m = NULL) {
     if (is.null(m)) {
         m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
     }
     if (is.null(k)) {
-        k <- floor(m * c(1, 2, 5) / 10)
+        k <- floor(m * c(1, 2, 4) / 10)
     }
     if (is.null(grid_d)) {
         out_l <- grid_a
     } else {
-        out_l <- grid_d
+        out_l <- left_join(grid_a, grid_d,
+                           c("L", "root_time", "lambda", "mu", "beta",
+                             "run_length", "sample_interval"))
     }
-    out <- tidyr::expand_grid(out_l, c = grid_c, t = NA_integer_, k = k,
-                              mc = NA_real_, bc = NA_real_, ue = NA_real_) %>%
+    out <- tidyr::expand_grid(out_l, k = k, mc = NA_real_, bc = NA_real_,
+                              ue = NA_real_) %>%
         nest(k = k, s = c(mc, bc, ue))
     for (i in seq_len(nrow(out))) {
         svMisc::progress(i, nrow(out))
-
-        xy <- get_samples_for_estimators(out_dir, out[i, ], par_name)
+        out_i <- out[i, ]
+        xy <- get_samples_for_estimators(out_dir, out_i, par_name)
         x <- xy$x
         y <- xy$y
-
-        out$t[i] <- get_tau(x, y)
-        out$s[[i]] <- map_dfr(k, ~unbiased_estimator(x, y, ., m, out$t[i]))
+        out$s[[i]] <- map_dfr(
+            k,
+            ~unbiased_estimator(x, y, ., m, out_i$tau,
+                                out_i$lag / out_i$sample_interval)
+        )
     }
     message(sprintf("%s estimators computed", par_name))
     out <- unnest(out, cols = c(k, s))
@@ -308,18 +323,16 @@ get_estimators <- function(out_dir, grid_a, grid_c, grid_d, par_name, k = NULL,
 
 get_samples_for_estimators <- function(out_dir, out_i, par_name) {
     if (par_name == "root_time") {
-        x <- get_pars_(out_dir, out_i[1:7], out_i$c, "_x")[[par_name]]
-        y <- get_pars_(out_dir, out_i[1:7], out_i$c, "_y")[[par_name]]
+        x <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_x")[[par_name]]
+        y <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_y")[[par_name]]
     } else {
-        t_x <- get_trees_(out_dir, out_i[1:7], out_i$c, "_x")
-        t_y <- get_trees_(out_dir, out_i[1:7], out_i$c, "_y")
+        t_x <- get_trees_(out_dir, out_i, out_i$lag, out_i$c, "_x")
+        t_y <- get_trees_(out_dir, out_i, out_i$lag, out_i$c, "_y")
         if (par_name == "topology support") {
-            # TODO: check this
             v <- out_i$tr[[1]]
             x <- purrr::map_lgl(t_x, all.equal, v, FALSE)
             y <- purrr::map_lgl(t_y, all.equal, v, FALSE)
         } else if (par_name == "clade support") {
-            # TODO: check this
             v <- out_i$cl[[1]]
             x <- purrr::map_lgl(t_x, ape::is.monophyletic, v)
             y <- purrr::map_lgl(t_y, ape::is.monophyletic, v)
@@ -334,13 +347,21 @@ estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
     m <- floor(grid_b$run_length[1] / grid_b$sample_interval[1])
     k <- floor(m / 2)
 
-    out <- tibble(grid_b, mc = NA_real_)
+    if (is.null(grid_d)) {
+        out_l <- grid_b
+    } else {
+        out_l <- right_join(grid_b, grid_d,
+                           c("L", "root_time", "lambda", "mu", "beta",
+                             "run_length", "sample_interval"))
+    }
+    out <- tibble(out_l, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
         svMisc::progress(i, nrow(out))
-        if (is.null(grid_d)) {
-            x <- get_pars_(out_dir, out[i, 1:7], 0, "")[[par_name]]
+        out_i <- out[i, ]
+        if (par_name == "root_time") {
+            x <- get_pars_(out_dir, out_i, NULL)[[par_name]]
         } else {
-            t <- get_trees_(out_dir, out[i, 1:7], 0, "")
+            t <- get_trees_(out_dir, out_i, NULL)
             if (par_name == "topology support") {
                 v <- grid_d$tr[[i]]
                 x <- map_lgl(t, all.equal, v, FALSE)
@@ -357,17 +378,6 @@ estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
     return(out)
 }
 
-make_estimator_figs <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
-                                par_name, par_label, k = NULL, m = NULL) {
-
-    out_a <- get_estimators(out_dir, grid_a, grid_c, grid_d, par_name, k, m)
-    out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
-
-    make_estimator_hist(out_a, out_b, par_name, par_label)
-    make_estimator_bias(out_a, par_name, par_label)
-    make_estimator_mse(out_a, out_b, par_name, par_label)
-}
-
 make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
     # TODO: add m to title
     # Coupled estimators
@@ -375,12 +385,13 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
         pivot_longer(c(mc, bc, ue))
     # Average across chains
     fig_data_g <- fig_data_a %>%
-        select(-t) %>%
-        group_by(L, root_time, lambda, mu, beta, run_length, sample_interval, k,
-                 name) %>%
+        select(-tau) %>%
+        group_by(L, root_time, lambda, mu, beta, run_length, sample_interval,
+                 lag, k, name) %>%
         summarise(value = mean(value), .groups = "drop")
     # Ground truth estimates
     fig_data_b <- out_b %>%
+        tidyr::expand_grid(lag = unique(out_a$lag), k = unique(out_a$k)) %>%
         mutate(ue = mc) %>%
         pivot_longer(c(mc, ue))
     # Merge overall estimates
@@ -398,24 +409,27 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
                   labeller = "label_both") +
         labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to m\n%d pairs of coupled chains, length m = %.02e and subsample %.02e\n1 ground truth chain, length %.02e at subsample %.02e",
+             subtitle = sprintf("%d pairs of coupled chains, samples k to m = %.02e (interval %.02e)\n1 ground truth chain, length %.02e, at interval %.02e",
                                 n_distinct(out_a$c),
                                 out_a$run_length[1], out_a$sample_interval[1],
                                 out_b$run_length[1], out_b$sample_interval[1]))
     for (scales in c("free", "fixed")) {
         fig +
-        facet_wrap(~ L + lambda + name, ncol = 3, scales = scales,
+        facet_wrap(~ L + lambda + lag + name, ncol = 3, scales = scales,
                    labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-est-hist_axes-%s", par_label, scales)),
-               width = 8, height = 12, limitsize = FALSE)
+               width = 3 * 3 + 2,
+               height = 3 * prod(n_distinct(out_a$L), n_distinct(out_a$lambda),
+                                 n_distinct(out_a$lag)))
     }
 }
 
 make_estimator_bias <- function(out_a, par_name, par_label) {
     # TODO: add m to title
     fig <- out_a %>%
-        ggplot(aes(x = t, y = bc, fill = as.factor(k), colour = as.factor(k))) +
+        ggplot(aes(x = tau, y = bc, fill = as.factor(k),
+               colour = as.factor(k))) +
         geom_point(alpha = 0.6) +
         labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
                              par_name),
@@ -427,11 +441,12 @@ make_estimator_bias <- function(out_a, par_name, par_label) {
         guides(colour = guide_legend(title = "k"), fill = FALSE)
     for (scales in c("free", "fixed")) {
         fig +
-        facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                   labeller = "label_both") +
+        facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
+                   scales = scales, labeller = "label_both") +
         ggsave(sprintf(fig_template,
                        sprintf("%s-bc-tau_axes-%s", par_label, scales)),
-               width = 8, height = 8, limitsize = FALSE)
+               width = 3 * n_distinct(out_a$lag) + 2,
+               height = 3 * n_distinct(out_a$L) * n_distinct(out_a$lambda))
     }
 }
 
