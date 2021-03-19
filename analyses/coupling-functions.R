@@ -459,10 +459,10 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
     # TODO: add m to title
     if (par_name == "root_time") {
         out_f <- out_a %>%
-            select(-c(c, t, bc))
+            select(-c(c, tau, bc))
     } else {
         out_f <- out_a %>%
-            select(-c(cl, tr, c, t, bc))
+            select(-c(c, tau, cl, tr, bc))
     }
     fig_data <- out_f %>%
         nest(s = c(mc, ue)) %>%
@@ -484,9 +484,9 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
         fig_data$mse_ue_n[i] <- get_estimator_mse(v, ue_n)
     }
     label_data <- out_a %>%
-        select(L, root_time, lambda, mu, beta, t, k) %>%
-        nest(t = t)
-    label_data$mt <- map2_dbl(label_data$k, label_data$t, ~mean(.x >= .y$t))
+        select(L, root_time, lambda, mu, beta, lag, tau, k) %>%
+        nest(tau = tau)
+    label_data$mt <- map2_dbl(label_data$k, label_data$tau, ~mean(.x >= .y$tau))
 
     fig <- fig_data %>%
         pivot_longer(c(mse_mc_1, mse_mc_n, mse_ue_n), "estimator",
@@ -498,34 +498,37 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
                    inherit.aes = FALSE) +
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to m in %d coupled chains; *_n is average of single chain/pair estimators *_1",
-                                length(grid_c)),
+             subtitle = sprintf("Using samples k to m/tau in %d coupled chains (*_n is average of single chain/pair estimators *_1)",
+                                length(n_distinct(out_a$c))),
              x = "k")
      for (scales in c("free", "fixed")) {
          fig +
-         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                    labeller = "label_both") +
+         facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
+                    scales = scales, labeller = "label_both") +
          ggsave(sprintf(fig_template,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
-                width = 8, height = 8)
+                width = 3 * n_distinct(out_a$lag) + 2,
+                height = 3 * n_distinct(out_a$L) * n_distinct(out_a$lambda))
      }
 }
 
-trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
-                                par_name, par_label) {
+trace_estimator <- function(out_dir, grid_a, grid_b, grid_d, par_name,
+                            par_label) {
 
     m <- grid_a$run_length[1] / grid_a$sample_interval[1]
-    k <- floor(m * c(1 / 10, 1 / 5, 2 / 5))
+    k <- floor(m * c(1, 2, 4) / 10)
 
     if (is.null(grid_d)) {
         out_l <- grid_a
     } else {
-        out_l <- grid_d
+        out_l <- left_join(grid_a, grid_d,
+                           c("L", "root_time", "lambda", "mu", "beta",
+                             "run_length", "sample_interval"))
     }
-    out_r <- tibble(k = k, m = map(k, ~seq.int(. + 100, m))) %>%
+    out_r <- tibble(k = k, m = map(k, ~seq.int(. + 100, m, 10))) %>%
         unnest(m) %>%
         tibble(mc = NA_real_, bc = NA_real_, ue = NA_real_)
-    fig_data <- tidyr::expand_grid(out_l, c = grid_c, out_r) %>%
+    fig_data <- tidyr::expand_grid(out_l, out_r) %>%
         nest(km = k:m, s = mc:ue)
 
     # get estimators for each combination of k and m
@@ -535,12 +538,12 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
         xy <- get_samples_for_estimators(out_dir, fig_data[i, ], par_name)
         x <- xy$x
         y <- xy$y
-        t <- get_tau(x, y)
 
         fig_data$s[[i]] <- map2_dfr(
             fig_data$km[[i]]$k,
             fig_data$km[[i]]$m,
-            ~unbiased_estimator(x, y, .x, .y, t)
+            ~unbiased_estimator(x, y, .x, .y, fig_data$tau[i],
+                                fig_data$lag[i] / fig_data$sample_interval[i])
         )
     }
     message("estimator terms computed")
@@ -548,6 +551,7 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
     # get mse for each estimator and sd of bias correction
     fig_data <- fig_data %>%
         unnest(c(km, s)) %>%
+        select(-tau) %>%
         nest(s = c(c, mc:ue)) %>%
         tibble(mse_mc_1 = NA_real_, mse_mc_n = NA_real_, mse_ue_n = NA_real_)
     out_b <- estimate_ground_truth(out_dir, grid_b, grid_d, par_name)
@@ -579,15 +583,20 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
         geom_line(alpha = 0.75) +
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s as k and m vary",
                              par_name),
-             subtitle = sprintf("Samples k to m in n = %d coupled chains",
-                                length(grid_c)),
+             subtitle = sprintf("Samples k to m in n = %d coupled chains at interval %.02e",
+                                n_distinct(grid_a$c),
+                                grid_a$sample_interval[1]),
              x = "m",
              colour = "k") +
          scale_y_continuous(trans = "log1p") +
-         facet_wrap(~ L + lambda, ncol = 2, scales = "free",
-                    labeller = "label_both") +
+         facet_wrap(~ L + lambda + lag + estimator, ncol = 3,
+                    scales = "free", labeller = "label_both") +
          ggsave(sprintf(fig_template, sprintf("%s-mse-trace", par_label)),
-                width = 8, height = 8)
+                width = 3 * 3 + 2,
+                height = 3 * prod(n_distinct(grid_a$L),
+                                  n_distinct(grid_a$lambda),
+                                  n_distinct(grid_a$lag)))
+
 
     # plot sd of bc
     fig_data$sd_bc <- map_dbl(fig_data$s, ~sd(.$bc))
@@ -596,14 +605,16 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_c, grid_d,
         geom_line(alpha = 0.75) +
         labs(title = sprintf("SD of bias correction (bc) in unbiased estimators of %s as k and m vary",
                              par_name),
-             subtitle = sprintf("Samples k to m in n = %d coupled chains",
-                                length(grid_c)),
+             subtitle = sprintf("Samples k to m in n = %d coupled chains at interval %.02e",
+                                n_distinct(grid_a$c),
+                                grid_a$sample_interval[1]),
              x = "m",
              y = "sd(bc)",
              colour = "k") +
          scale_y_continuous(trans = "log1p") +
-         facet_wrap(~ L + lambda, ncol = 2, scales = "free",
-                    labeller = "label_both") +
+         facet_wrap(~ L + lambda + lag, ncol = n_distinct(grid_a$lag),
+                    scales = "free", labeller = "label_both") +
          ggsave(sprintf(fig_template, sprintf("%s-bc-trace", par_label)),
-                width = 8, height = 8)
+         width = 3 * 3 + 2,
+         height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 }
