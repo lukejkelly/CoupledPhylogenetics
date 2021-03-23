@@ -212,13 +212,16 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
             facet_wrap(~ L + lambda + stat, ncol = 3, scales = scales,
                        labeller = "label_both") +
             ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
-                   width = 10, height = 5)
+                   width = 3 * 3 + 2,
+                   height = prod(3, n_distinct(grid_a$L),
+                                 n_distinct(grid_a$lambda)))
     }
     fig_w1 +
-        ylim(0, 2) +
+        ylim(0, 5) +
         facet_wrap(~ L + lambda + stat, ncol = 3) +
-        ggsave(sprintf(fig_template, "w1_axes-clipped"), width = 10,
-               height = 10)
+        ggsave(sprintf(fig_template, "w1_axes-clipped"),
+               width = 3 * 3 + 2,
+               height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 }
 
 # Make marginal histograms
