@@ -2,5 +2,5 @@
 
 for FILE in *.supp; do
     sleep 0.25
-    qsub -d . -v TARGET=${FILE/.supp/} ../../src/spr_matrix.pbs
+    sbatch --export=ALL,TARGET=${FILE/.supp/} ../../src/spr_matrix.sl
 done
