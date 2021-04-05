@@ -6,10 +6,10 @@ library("rwty")
 source("estimators.R")
 source("coupling-functions.R")
 source("ipm-bounds.R")
-source("tree_metrics.R")
+source("tree-metrics.R")
 source("rwty-functions.R")
 
-# Set target, e.g. target <- "20210319"
+# Set target, e.g. target <- "20210402"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings

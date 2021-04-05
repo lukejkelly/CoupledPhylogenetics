@@ -77,6 +77,18 @@ get_pars_ <- function(file_dir, grid, lag, c, d) {
     return(pars)
 }
 
+get_pa_xy <- function(file_dir, grid, lag, c, moves) {
+    file_name <- make_file_name_(file_dir, grid, lag, c, "_xy", "pa")
+    pa_xy <- readr::read_csv(file_name, col_types = cols())
+    t <- pa_xy$t
+    pa <- pa_xy %>%
+        select(-t) %>%
+        select(!!moves) %>%
+        replace_na(as.list(rep(0, length(moves)))) %>%
+        rename_with(~ paste0("m_", .))
+    return(tibble(t, pa))
+}
+
 # Read config file and make settings grids
 make_grid <- function(config_file) {
     source(config_file, TRUE)
@@ -620,4 +632,14 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_d, par_name,
          ggsave(sprintf(fig_template, sprintf("%s-bc-trace", par_label)),
          width = 3 * 3 + 2,
          height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
+}
+
+# TraitLab move names
+move_names <- function(inds) {
+    mns <- c("slide", "exchange (local)", "exchange (wide)", "spr (local)",
+             "spr (wide)", "scale (tree)", "scale (subtree)", "mu", NA, NA,
+             "leaf time", "scale (top)", "cat (add)", "cat (delete)", "rho",
+             "kappa", NA, "cat (move)", "xi (one)", "xi (all)", "beta")
+    mn <- mns[inds]
+    return(mn)
 }
