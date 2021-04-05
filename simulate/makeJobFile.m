@@ -5,7 +5,7 @@ function makeJobFile(job_type)
 
     fprintf(fid, '#!/bin/bash\n\n');
 
-    % fprintf(fid, '#SBATCH --mail-user=kelly\n');
+    fprintf(fid, '#SBATCH --mail-user=kelly@ceremade.dauphine.fr\n');
     fprintf(fid, '#SBATCH --mail-type=END\n');
     fprintf(fid, '#SBATCH -N 1\n');
     fprintf(fid, '#SBATCH -n 1\n');
