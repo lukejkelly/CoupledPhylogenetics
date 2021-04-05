@@ -1,0 +1,54 @@
+\documentclass[class=article,border=0pt]{standalone}
+
+\usepackage[usenames,dvipsnames]{xcolor}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,fit,backgrounds,calc}
+
+\usepackage{amsmath,amsfonts,amsthm,amssymb,mathtools}
+
+\usepackage{../luke-macros}
+
+\pgfdeclarelayer{background}
+\pgfsetlayers{background,main}
+
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{tikzpicture}
+    \sffamily
+
+    \tikzset{ST/.style={draw=black,solid,thick}}
+    \tikzset{SN/.style={thick,circle,inner sep=0mm,minimum size=0.75cm,font=\small,draw}}
+
+    \tikzset{HS/.style={thick, shape=rectangle, rounded corners, draw opacity=0.5, draw = black!50}}
+    \tikzset{HL/.style={text = black!50}}
+
+    \node (a) at (0, 4.5) {};
+    	\node (5) [SN] at (0, 3) {5};
+    		\node (6) [SN] at (-2, 2) {6};
+    			\node (1) [SN] at (-3, 0) {1};
+    			\node (2) [SN] at (-1, 0) {2};
+    		\node (7) [SN] at (2, 1.5) {7};
+    			\node (3) [SN] at (1, 0) {3};
+    			\node (4) [SN] at (3, 0) {4};
+
+    \begin{pgfonlayer}{background}
+        \node[HS, dashed, fit = (3)(4)(7)] (s1) {};
+        \node[HL, below left] at (s1.north east) {5};
+        \node[HS, fit = (1)(2)(3)(4)(5)(6)(7)] (s2) {};
+        \node[HL, below left] at (s2.north east) {6};
+
+    	\path[ST] (a.center) -- (5);
+    		\path[ST] (5) -| (6);
+    			\path[ST] (6) -| (1);
+    			\path[ST] (6) -| (2);
+    		\path[ST] (5) -| (7);
+    			\path[ST] (7) -| (3);
+    			\path[ST] (7) -| (4);
+    \end{pgfonlayer}
+\end{tikzpicture}
+
+\end{document}
