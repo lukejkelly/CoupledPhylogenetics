@@ -84,7 +84,7 @@ get_pa_xy <- function(file_dir, grid, lag, c, moves) {
     pa <- pa_xy %>%
         select(-t) %>%
         select(!!moves) %>%
-        replace_na(as.list(rep(0, length(moves)))) %>%
+        # mutate(across(everything(), ~replace(., is.nan(.), 0))) %>%
         rename_with(~ paste0("m_", .))
     return(tibble(t, pa))
 }
@@ -117,7 +117,8 @@ get_tau_ <- function(z, lag_offset) {
     if (is.na(t_off)) {
         t_off <- 0
     } else if (t_off == length(z)) {
-        stop("chains did not couple")
+        warning("chains did not couple")
+        t_off <- NA
     }
     tau <- t_off + lag_offset
     return(tau)
@@ -147,6 +148,61 @@ get_coupling_times <- function(out_dir, grid_a) {
     }
     message("coupling times computed")
     return(tau)
+}
+
+make_tau_ecdf <- function(grid_a) {
+    fig_tau <- grid_a %>%
+        ggplot(aes(x = tau, colour = as.factor(lag))) +
+        stat_ecdf(pad = FALSE, alpha = 0.75) +
+        labs(title = "ECDF of coupling time tau",
+             subtitle = sprintf("minimum %.02e iterations, replications = %d",
+                                grid_a$run_length[1], n_distinct(grid_a$c)),
+             x = sprintf("tau / %d", grid_a$sample_interval[1]),
+             y = "Fhat",
+             colour = "lag")
+    for (scales in c("free", "fixed")) {
+        fig_tau +
+        facet_wrap(~ L + lambda, ncol = n_distinct(grid_a$lambda),
+                   scales = scales, labeller = "label_both") +
+        ggsave(sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
+               width = 3 * n_distinct(grid_a$lambda) + 2,
+               height = 3 * n_distinct(grid_a$L))
+    }
+}
+
+make_tv_figure <- function(out_dir, grid_a, iters) {
+    tv_data <- expand_grid(grid_a, iter = iters, tv = NA_real_)
+    tv_data$tv <- tv_bound_estimator(tv_data$tau,
+                                     tv_data$lag / tv_data$sample_interval,
+                                     tv_data$iter)
+
+    fig_tv_data <- tv_data %>%
+        select(-tau) %>%
+        nest(s = c(c, tv)) %>%
+        mutate(tv = map_dbl(s, ~mean(.$tv)))
+
+    fig_tv <- fig_tv_data %>%
+        ggplot(aes(x = iter, y = tv, colour = as.factor(lag))) +
+        geom_line(size = 1.5, alpha = 0.75) +
+        labs(title = "TV upper bound",
+             subtitle = sprintf("minimum %.02e iterations, replications = %d",
+                                grid_a$run_length[1], n_distinct(grid_a$c)),
+             x = sprintf("iteration / %d", grid_a$sample_interval[1]),
+             y = "d_tv") +
+        scale_y_continuous(trans = "log1p")
+     for (scales in c("free", "fixed")) {
+         fig_tv +
+         facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
+                    labeller = "label_both") +
+         ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
+                width = 3 * n_distinct(grid_a$lambda) + 2,
+                height = 3 * n_distinct(grid_a$L))
+     }
+     fig_tv +
+         ylim(0, 5) +
+         facet_wrap(~ L + lambda, ncol = n_lambda, labeller = "label_both") +
+         ggsave(sprintf(fig_template, "tv_axes-clipped"),
+                width = 3 * n_lambda + 2, height = 3 * n_L)
 }
 
 make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {

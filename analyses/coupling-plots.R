@@ -48,55 +48,12 @@ compute_tree_distances(out_dir, grid_a)
 ################################################################################
 # Coupling times
 grid_a$tau <- get_coupling_times(out_dir, grid_a)
+make_tau_ecdf(grid_a)
 
-fig_tau <- grid_a %>%
-    ggplot(aes(x = tau, colour = as.factor(lag))) +
-    stat_ecdf(pad = FALSE, alpha = 0.75) +
-    labs(title = "ECDF of coupling time tau",
-         subtitle = sprintf("%.02e iterations, replications = %d", rl_a, n_c),
-         x = sprintf("tau / %d", si_a),
-         y = "Fhat",
-         colour = "lag")
-for (scales in c("free", "fixed")) {
-    fig_tau +
-    facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
-               labeller = "label_both") +
-    ggsave(sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
-           width = 3 * n_lambda + 2, height = 3 * n_L)
-}
-
+################################################################################
 # Integral probablity metrics
-iters <- seq.int(0, rl_a / si_a)
-tv_data <- expand_grid(grid_a, iter = iters, tv = NA_real_)
-tv_data$tv <- tv_bound_estimator(tv_data$tau,
-                                 tv_data$lag / tv_data$sample_interval,
-                                 tv_data$iter)
-
-fig_tv_data <- tv_data %>%
-    select(-tau) %>%
-    nest(s = c(c, tv)) %>%
-    mutate(tv = map_dbl(s, ~mean(.$tv)))
-
-fig_tv <- fig_tv_data %>%
-    ggplot(aes(x = iter, y = tv, colour = as.factor(lag))) +
-    geom_line(size = 1.5, alpha = 0.75) +
-    labs(title = "TV upper bound",
-         subtitle = sprintf("%.02e iterations, replications = %d", rl_a, n_c),
-         x = sprintf("iteration / %d", si_a),
-         y = "d_tv")
- for (scales in c("free", "fixed")) {
-     fig_tv +
-     facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
-                labeller = "label_both") +
-     ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
-            width = 3 * n_lambda + 2, height = 3 * n_L)
- }
-fig_tv +
-    ylim(0, 5) +
-    facet_wrap(~ L + lambda, ncol = n_lambda, labeller = "label_both") +
-    ggsave(sprintf(fig_template, "tv_axes-clipped"),
-           width = 3 * n_lambda + 2, height = 3 * n_L)
-
+iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
+make_tv_figure(out_dir, grid_a, iters)
 make_w1_figure(out_dir, grid_a, grid_d, iters)
 
 ################################################################################
@@ -106,7 +63,6 @@ make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 
 ################################################################################
 # Estimators
-
 make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
 make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
                     "clade")
@@ -140,5 +96,5 @@ gridExtra::grid.arrange(grobs = fig_awty, nrow = n_distinct(fig_awty_keys$L),
                         ncol = n_distinct(fig_awty_keys$lambda)) %>%
     ggsave(sprintf(fig_template, "asdsf"),
            plot = .,
-           width = 3 *  n_distinct(fig_awty_keys$lambda) + 2,
+           width = 3 * n_distinct(fig_awty_keys$lambda) + 2,
            height = 3 * n_distinct(fig_awty_keys$L))
