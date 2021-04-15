@@ -1,17 +1,20 @@
 # Plotting total variation bound against acceptance proportions
 # We may include this in coupling-plots at some stage
-# Requires samples at lag 1
+# Requires samples at subsample rate 1
 
 library("ape")
-library("tidyverse")
+library("tidyr")
+library("dplyr")
+library("purrr")
 library("fs")
+library("ggplot2")
 
 source("estimators.R")
 source("coupling-functions.R")
 source("ipm-bounds.R")
 source("tree-metrics.R")
 
-# Set target, e.g. target <- "20210406"
+# Set target, e.g. target <- "20210408"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
@@ -19,6 +22,9 @@ config_file <- file.path(target_dir, "config.R")
 grids <- make_grid(config_file)
 # Coupled shorter runs is a, longer run is b, c is indices of coupled runs
 grid_a <- grids$grid_a
+if (any(grid_a$sample_interval != 1)) {
+    stop("Requires chains with every sample")
+}
 # grid_b <- grids$grid_b
 
 # Target figure and output templates and directories
@@ -49,8 +55,6 @@ make_tv_figure(out_dir, grid_a, iters)
 
 # getting acceptance rates
 active_moves <- 1:7
-# lol <- get_pa_xy(out_dir, pa_data[1, ], pa_data$lag[1], pa_data$c[1],
-#                  active_moves)
 pa_data <- grid_a %>%
     filter(!is.na(tau)) %>%
     select(-tau)
@@ -87,7 +91,7 @@ fig_rate <- fig_rate_data %>%
             width = 3 * n_distinct(grid_a$lag) + 2,
             height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 
-# plot final move
+# plot final move (only works for subsample = 1 and chains stop at coupling)
 fig_final_data <- pa_data %>%
     unnest(pa_xy) %>%
     pivot_longer(starts_with("m_"), "move", names_prefix = "m_",
@@ -108,7 +112,7 @@ fig_final <- fig_final_data %>%
     labs(title = "last move before coupling",
          subtitle = sprintf("across n = %d coupled chains",
                             n_distinct(grid_a$c)),
-         y = "proportion",
+         y = "count",
          colour = "move") +
     facet_wrap(~ L + lambda + lag, ncol = n_distinct(grid_a$lag),
                scales = "free", labeller = "label_both") +

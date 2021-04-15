@@ -1,5 +1,8 @@
-library("tidyverse")
+library("tidyr")
+library("dplyr")
 library("ape")
+library("ggplot2")
+library("purrr")
 
 # Functions to construct file names and paths
 get_file_template_a <- function() {
@@ -79,7 +82,7 @@ get_pars_ <- function(file_dir, grid, lag, c, d) {
 
 get_pa_xy <- function(file_dir, grid, lag, c, moves) {
     file_name <- make_file_name_(file_dir, grid, lag, c, "_xy", "pa")
-    pa_xy <- readr::read_csv(file_name, col_types = cols())
+    pa_xy <- readr::read_csv(file_name, col_types = readr::cols())
     t <- pa_xy$t
     pa <- pa_xy %>%
         select(-t) %>%
@@ -118,7 +121,7 @@ get_tau_ <- function(z, lag_offset) {
         t_off <- 0
     } else if (t_off == length(z)) {
         warning("chains did not couple")
-        t_off <- NA
+        # t_off <- NA
     }
     tau <- t_off + lag_offset
     return(tau)
@@ -188,10 +191,11 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
              subtitle = sprintf("minimum %.02e iterations, replications = %d",
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("iteration / %d", grid_a$sample_interval[1]),
-             y = "d_tv") +
-        scale_y_continuous(trans = "log1p")
+             y = "d_tv",
+             colour = "lag")
      for (scales in c("free", "fixed")) {
          fig_tv +
+         scale_y_continuous(trans = "log1p") +
          facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
                     labeller = "label_both") +
          ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
@@ -274,22 +278,29 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
                                 w1_data$run_length[1], n_distinct(w1_data$c)),
              x = sprintf("iteration / %d", si_a),
              y = "d_w1",
-             colour = "lag")
-    for (scales in c("free", "fixed")) {
-        fig_w1 +
-            facet_wrap(~ L + lambda + stat, ncol = 3, scales = scales,
-                       labeller = "label_both") +
-            ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
-                   width = 3 * 3 + 2,
-                   height = prod(3, n_distinct(grid_a$L),
-                                 n_distinct(grid_a$lambda)))
-    }
-    fig_w1 +
-        ylim(0, 5) +
-        facet_wrap(~ L + lambda + stat, ncol = 3) +
-        ggsave(sprintf(fig_template, "w1_axes-clipped"),
+             colour = "lag") +
+        facet_wrap(~ L + lambda + stat, ncol = 3, scales = "free",
+                   labeller = "label_both") +
+        ggsave(sprintf(fig_template, "w1_axes-free"),
                width = 3 * 3 + 2,
-               height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
+               height = prod(3, n_distinct(grid_a$L),
+                             n_distinct(grid_a$lambda)))
+
+    # for (scales in c("free", "fixed")) {
+    #     fig_w1 +
+    #         facet_wrap(~ L + lambda + stat, ncol = 3, scales = scales,
+    #                    labeller = "label_both") +
+    #         ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
+    #                width = 3 * 3 + 2,
+    #                height = prod(3, n_distinct(grid_a$L),
+    #                              n_distinct(grid_a$lambda)))
+    # }
+    # fig_w1 +
+    #     ylim(0, 5) +
+    #     facet_wrap(~ L + lambda + stat, ncol = 3) +
+    #     ggsave(sprintf(fig_template, "w1_axes-clipped"),
+    #            width = 3 * 3 + 2,
+    #            height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 }
 
 # Make marginal histograms
@@ -649,8 +660,7 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_d, par_name,
     fig1 <- fig_data %>%
         pivot_longer(c(mse_mc_1, mse_mc_n, mse_ue_n), "estimator",
                      names_prefix = "mse_", values_to = "mse") %>%
-        ggplot(aes(x = m, y = mse, colour = as.factor(k),
-                   linetype = estimator)) +
+        ggplot(aes(x = m, y = mse, colour = as.factor(k))) +
         geom_line(alpha = 0.75) +
         labs(title = sprintf("MSE of Monte Carlo (mc) and unbiased (ue) estimators of %s as k and m vary",
                              par_name),
