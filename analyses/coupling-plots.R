@@ -1,5 +1,7 @@
 library("ape")
-library("tidyverse")
+library("ggplot2")
+library("dplyr")
+library("purrr")
 library("fs")
 library("rwty")
 
@@ -9,7 +11,7 @@ source("ipm-bounds.R")
 source("tree-metrics.R")
 source("rwty-functions.R")
 
-# Set target, e.g. target <- "20210402"
+# Set target, e.g. target <- "20210408"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
@@ -20,8 +22,7 @@ grid_a <- grids$grid_a
 grid_b <- grids$grid_b
 
 grid_d <- grid_a %>% nest(s = c(lag, c)) %>% select(-s)
-grid_d$cl <- rep(list(c("5", "6"), c("10", "9")), each = 2)
-# grid_d$cl <- list(c("5", "6"))
+grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
 grid_d$tr <- grid_d %>%
     select(L, root_time, lambda, mu, beta) %>%
     pmap(function(...) read_nexus_file(target_dir, ...))
@@ -88,9 +89,11 @@ fig_awty <- fig_awty_data %>%
                labs(title = sprintf("L = %d : lambda = %f", .y$L, .y$lambda)))
 
 for (i in seq_len(nrow(fig_awty_keys))) {
-    fig_awty[[i]] <- fig_awty[[i]]$asdsf.plot +
+    fig_awty[[i]] <- fig_awty[[i]] +
         labs(title = sprintf("L = %d : lambda = %f", fig_awty_keys$L[i],
-                             fig_awty_keys$lambda[i]))
+                             fig_awty_keys$lambda[i]),
+             x = sprintf("(iteration / %d) - window size(=20)",
+                         grid_a$sample_interval[1]))
 }
 gridExtra::grid.arrange(grobs = fig_awty, nrow = n_distinct(fig_awty_keys$L),
                         ncol = n_distinct(fig_awty_keys$lambda)) %>%
