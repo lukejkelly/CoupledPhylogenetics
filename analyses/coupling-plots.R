@@ -78,26 +78,24 @@ trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
 
 ################################################################################
 # Are We There Yet?
-grid_e <- get_rwty_trees(out_dir, grid_a)
+grid_e <- get_rwty_output(out_dir, grid_a)
 
 fig_awty_data <- grid_e %>%
-    select(-c) %>%
-    group_by(L, root_time, lambda, mu, beta)
-fig_awty_keys <- group_keys(fig_awty_data)
+    select(-c(c, tau)) %>%
+    group_by(L, root_time, lambda, mu, beta, run_length, sample_interval, lag)
 fig_awty <- fig_awty_data %>%
-    group_map(~makeplot.asdsf(.x$rwty)$asdsf.plot +
-               labs(title = sprintf("L = %d : lambda = %f", .y$L, .y$lambda)))
+    group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
+               labs(title = sprintf("L = %d, lambda = %g, lag = %g", .y$L,
+                                    .y$lambda, .y$lag),
+                    subtitle = sprintf("window size = %d", win_size(.y)),
+                    x = sprintf("iteration / %d", .y$sample_interval)))
 
-for (i in seq_len(nrow(fig_awty_keys))) {
-    fig_awty[[i]] <- fig_awty[[i]] +
-        labs(title = sprintf("L = %d : lambda = %f", fig_awty_keys$L[i],
-                             fig_awty_keys$lambda[i]),
-             x = sprintf("(iteration / %d) - window size(=20)",
-                         grid_a$sample_interval[1]))
-}
-gridExtra::grid.arrange(grobs = fig_awty, nrow = n_distinct(fig_awty_keys$L),
-                        ncol = n_distinct(fig_awty_keys$lambda)) %>%
+gridExtra::grid.arrange(grobs = fig_awty,
+                        ncol = n_distinct(fig_awty_data$lag),
+                        nrow = prod(n_distinct(fig_awty_data$L),
+                                    n_distinct(fig_awty_data$lambda))) %>%
     ggsave(sprintf(fig_template, "asdsf"),
            plot = .,
-           width = 3 * n_distinct(fig_awty_keys$lambda) + 2,
-           height = 3 * n_distinct(fig_awty_keys$L))
+           width = 3 * n_distinct(fig_awty_data$lag) + 2,
+           height = 3 * prod(n_distinct(fig_awty_data$L),
+                             n_distinct(fig_awty_data$lambda)))
