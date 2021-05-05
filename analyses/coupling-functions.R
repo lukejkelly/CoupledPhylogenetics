@@ -82,7 +82,8 @@ get_pars_ <- function(file_dir, grid, lag, c, d) {
 
 get_pa_xy <- function(file_dir, grid, lag, c, moves) {
     file_name <- make_file_name_(file_dir, grid, lag, c, "_xy", "pa")
-    pa_xy <- readr::read_csv(file_name, col_types = readr::cols())
+    pa_xy <- readr::read_csv(file_name, col_types = readr::cols()) %>%
+        filter(t <= grid$tau)
     t <- pa_xy$t
     pa <- pa_xy %>%
         select(-t) %>%
@@ -120,8 +121,7 @@ get_tau_ <- function(z, lag_offset) {
     if (is.na(t_off)) {
         t_off <- 0
     } else if (t_off == length(z)) {
-        warning("chains did not couple")
-        # t_off <- NA
+        error("chains did not couple")
     }
     tau <- t_off + lag_offset
     return(tau)
