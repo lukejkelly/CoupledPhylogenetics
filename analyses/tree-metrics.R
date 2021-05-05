@@ -1,5 +1,11 @@
-compute_tree_distances <- function(out_dir, grid_a) {
+if (Sys.info()["nodename"] == "kelly.local") {
+    source("../../RSPR/R/rspR.r")
+} else {
+    source("/home/users/kelly/rspr/R/rspR.r")
+}
 
+compute_tree_distances <- function(out_dir, grid_a) {
+    # Rooted SPR distance between pairs of trees drawn from coupled kernel
     for (i in seq_len(nrow(grid_a))) {
         svMisc::progress(i, nrow(grid_a))
         grid_a_i <- grid_a[i, ]
@@ -9,8 +15,9 @@ compute_tree_distances <- function(out_dir, grid_a) {
 
         lag_offset <- grid_a_i$lag / grid_a_i$sample_interval
 
-        d <- purrr::map2_dbl(x[-seq_len(lag_offset)], y, ape::dist.topo,
-                             "score")
+        # d <- purrr::map2_dbl(x[-seq_len(lag_offset)], y, ape::dist.topo,
+        #                      "score")
+        d <- purrr::map2_dbl(x[-seq_len(lag_offset)], y, rspr)
 
         output_file_name <- make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
                                             grid_a_i$c, "", "dist")
