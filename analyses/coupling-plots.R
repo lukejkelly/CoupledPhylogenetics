@@ -11,7 +11,7 @@ source("ipm-bounds.R")
 source("tree-metrics.R")
 source("rwty-functions.R")
 
-# Set target, e.g. target <- "20210408"
+# Set target, e.g. target <- "20210428"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
