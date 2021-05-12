@@ -9,6 +9,7 @@ function makeJobFile(job_type)
     fprintf(fid, '#SBATCH --mail-type=END\n');
     fprintf(fid, '#SBATCH -N 1\n');
     fprintf(fid, '#SBATCH -n 1\n');
+    fprintf(fid, '#SBATCH -c 1\n');
 
     switch job_type
     case 'a'
