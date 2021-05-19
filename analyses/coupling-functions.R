@@ -121,7 +121,7 @@ get_tau_ <- function(z, lag_offset) {
     if (is.na(t_off)) {
         t_off <- 0
     } else if (t_off == length(z)) {
-        error("chains did not couple")
+        stop("chains did not couple")
     }
     tau <- t_off + lag_offset
     return(tau)
@@ -202,11 +202,11 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
                 width = 3 * n_distinct(grid_a$lambda) + 2,
                 height = 3 * n_distinct(grid_a$L))
      }
-     fig_tv +
-         ylim(0, 5) +
-         facet_wrap(~ L + lambda, ncol = n_lambda, labeller = "label_both") +
-         ggsave(sprintf(fig_template, "tv_axes-clipped"),
-                width = 3 * n_lambda + 2, height = 3 * n_L)
+     # fig_tv +
+     #     ylim(0, 5) +
+     #     facet_wrap(~ L + lambda, ncol = n_lambda, labeller = "label_both") +
+     #     ggsave(sprintf(fig_template, "tv_axes-clipped"),
+     #            width = 3 * n_lambda + 2, height = 3 * n_L)
 }
 
 make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {

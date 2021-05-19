@@ -25,3 +25,25 @@ compute_tree_distances <- function(out_dir, grid_a) {
     }
     message("tree distances computed")
 }
+
+compute_tree_jump_distances <- function(out_dir, grid_a) {
+    # Rooted SPR distance between pairs of trees in a chain
+    grid_s <- tibble(grid_a, mean = NA_real_, q90 = NA_real_)
+    for (i in seq_len(nrow(grid_a))) {
+        svMisc::progress(i, nrow(grid_a))
+        grid_s_i <- grid_s[i, ]
+
+        lag_offset <- grid_s_i$lag / grid_s_i$sample_interval
+        x <- get_trees_(out_dir, grid_s_i, grid_s_i$lag, grid_s_i$c, "_x")
+        x0 <- x[-seq_len(lag_offset)]
+        p <- sample.int(min(200, 2 * floor(length(x0) / 2)))
+        x1 <- x0[p[seq_len(length(p) / 2)]]
+        x2 <- x0[p[-seq_len(length(p) / 2)]]
+        d <- purrr::map2_dbl(x1, x2, rspr)
+
+        grid_s$mean[i] <- mean(d)
+        grid_s$q90[i] <- quantile(d, 0.9)
+    }
+    message("tree distances computed")
+    return(grid_s)
+}
