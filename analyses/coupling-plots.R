@@ -21,7 +21,7 @@ grids <- make_grid(config_file)
 grid_a <- grids$grid_a
 grid_b <- grids$grid_b
 
-grid_d <- grid_a %>% nest(s = c(lag, c)) %>% select(-s)
+grid_d <- grid_b # grid_a %>% nest(s = c(lag, c)) %>% select(-s)
 grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
 grid_d$tr <- grid_d %>%
     select(L, root_time, lambda, mu, beta) %>%
@@ -85,9 +85,10 @@ fig_rwty_data <- grid_e %>%
     group_by(L, root_time, lambda, mu, beta, run_length, sample_interval, lag)
 fig_rwty <- fig_rwty_data %>%
     group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
-               labs(title = sprintf("L = %d, lambda = %g, lag = %g", .y$L,
-                                    .y$lambda, .y$lag),
-                    subtitle = sprintf("window size = %d", win_size(.y)),
+               labs(# title = sprintf("L = %d, lambda = %g, lag = %g", .y$L,
+                    #                .y$lambda, .y$lag),
+                    # subtitle
+                    title = sprintf("window size = %d", win_size(.y)),
                     x = sprintf("iteration / %d", .y$sample_interval)))
 
 gridExtra::grid.arrange(grobs = fig_rwty,

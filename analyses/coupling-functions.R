@@ -379,9 +379,9 @@ get_estimators <- function(out_dir, grid_a, grid_d, par_name, k = NULL,
     if (is.null(grid_d)) {
         out_l <- grid_a
     } else {
-        out_l <- left_join(grid_a, grid_d,
-                           c("L", "root_time", "lambda", "mu", "beta",
-                             "run_length", "sample_interval"))
+        out_l <- left_join(grid_a,
+                           select(grid_d, -c(run_length, sample_interval)),
+                           c("L", "root_time", "lambda", "mu", "beta"))
     }
     out <- tidyr::expand_grid(out_l, k = k, mc = NA_real_, bc = NA_real_,
                               ue = NA_real_) %>%
@@ -433,8 +433,8 @@ estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
         out_l <- grid_b
     } else {
         out_l <- right_join(grid_b, grid_d,
-                           c("L", "root_time", "lambda", "mu", "beta",
-                             "run_length", "sample_interval"))
+                            c("L", "root_time", "lambda", "mu", "beta",
+                              "run_length", "sample_interval"))
     }
     out <- tibble(out_l, mc = NA_real_)
     for (i in seq_len(nrow(out))) {
@@ -461,7 +461,6 @@ estimate_ground_truth <- function(out_dir, grid_b, grid_d, par_name) {
 }
 
 make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
-    # TODO: add m to title
     # Coupled estimators
     fig_data_a <- out_a %>%
         pivot_longer(c(mc, bc, ue))
@@ -491,10 +490,11 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
                   labeller = "label_both") +
         labs(title = sprintf("Monte Carlo (mc) and bias-corrected (bc) unbiased (ue) estimators of %s",
                              par_name),
-             subtitle = sprintf("%d pairs of coupled chains, samples k to m = %.02e (interval %.02e)\n1 ground truth chain, length %.02e, at interval %.02e",
+             subtitle = sprintf("%d pairs of coupled chains, samples k to m = %.02e (interval %.02e)\n1 ground truth chain, length %.02e (interval %.02e)",
                                 n_distinct(out_a$c),
                                 out_a$run_length[1], out_a$sample_interval[1],
-                                out_b$run_length[1], out_b$sample_interval[1]))
+                                out_b$run_length[1], out_b$sample_interval[1])) +
+             guides(colour = guide_legend(title = sprintf("k / %d", out_a$sample_interval)))
     for (scales in c("free", "fixed")) {
         fig +
         facet_wrap(~ L + lambda + lag + name, ncol = 3, scales = scales,
@@ -515,12 +515,13 @@ make_estimator_bias <- function(out_a, par_name, par_label) {
         geom_point(alpha = 0.6) +
         labs(title = sprintf("Coupling time tau and bias correction in unbiased estimators of %s",
                              par_name),
-             subtitle = sprintf("Samples k to m; %d coupled chains of length %.02e at sampling interval %.02e",
-                                n_distinct(out_a$c), out_a$run_length[1],
-                                out_a$sample_interval[1]),
-             x = "tau",
+             subtitle = sprintf("Samples k to m = %.02e; %d pairs of coupled chains",
+                                out_a$run_length[1], n_distinct(out_a$c)),
+             x = sprintf("tau / %d", out_a$sample_interval[1]),
              y = "bias correction") +
-        guides(colour = guide_legend(title = "k"), fill = FALSE)
+        guides(colour = guide_legend(title = sprintf("k / %d",
+                                                     out_a$sample_interval[1])),
+               fill = FALSE)
     for (scales in c("free", "fixed")) {
         fig +
         facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
