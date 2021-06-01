@@ -1,5 +1,8 @@
 function writeConfig(list_L, list_root_time, list_lambda, list_mu, ...
-        list_beta, list_run_length, list_sample_interval, list_lag, n_chains)
+        list_beta, list_run_length, list_sample_interval, list_lag, ...
+        n_chains, extras)
+
+    global LEAF;
 
     fid = fopen(fullfile(fileDest(), 'config.R'), 'w');
 
@@ -17,11 +20,11 @@ function writeConfig(list_L, list_root_time, list_lambda, list_mu, ...
     fprintf(fid, 'list_lag <- c(%s)\n', formatList(list_lag, '%e'));
     fprintf(fid, 'list_c <- seq_len(%e)\n', n_chains);
 
+    fprintf(fid, '# missing <- %i\n', extras.missing);
+    fprintf(fid, '# clades <- %i\n', extras.clades);
+    fprintf(fid, '# ncats <- %i\n', extras.ncats);
+    fprintf(fid, '# kappa <- %e\n', extras.kappa);
+
     fclose(fid);
 
-end
-
-function fl = formatList(l, f)
-    cl = arrayfun(@(x) sprintf(f, x), l, 'UniformOutput', false);
-    fl = strjoin(cl, ', ');
 end

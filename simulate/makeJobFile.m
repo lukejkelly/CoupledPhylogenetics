@@ -23,13 +23,12 @@ function makeJobFile(job_type)
     fprintf(fid, 'sleep $[ ($RANDOM %% 60) + 1 ]s\n\n');
 
     % fprintf(fid, 'PAR_FILE=$(LC_NUMERIC="en_GB.UTF-8" \\\n');
-    fprintf(fid, 'PAR_FILE=$( \\\n');
     switch job_type
     case 'a'
-        fprintf(fid, '           printf "L%%d_r%%e_l%%e_m%%e_b%%e_l%%e" \\\n');
+        fprintf(fid, 'PAR_FILE=$(printf "L%%d_r%%e_l%%e_m%%e_b%%e_l%%e" \\\n');
         fprintf(fid, '                  "$L" "$ROOT_TIME" "$LAMBDA" "$MU" "$BETA" "$LAG")\n\n');
     case 'b'
-        fprintf(fid, '           printf "L%%d_r%%e_l%%e_m%%e_b%%e" \\\n');
+        fprintf(fid, 'PAR_FILE=$(printf "L%%d_r%%e_l%%e_m%%e_b%%e" \\\n');
         fprintf(fid, '                  "$L" "$ROOT_TIME" "$LAMBDA" "$MU" "$BETA")\n\n');
     end
 

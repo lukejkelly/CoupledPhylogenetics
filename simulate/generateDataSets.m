@@ -20,23 +20,26 @@ cellfun(@(x) mkdir(dest_dir, x), {'data', 'output', 'pars', 'log'});
 for i = 1:numel(grid_L)
     % We'll use the same tree for each parameter combination
     treePars = {grid_L(i), grid_root_time(i)};
-    s = sampleSyntheticTree(treePars{:});
+    fprintf('Sampling tree with %i leaves and root at %e\n', treePars{:});
+    s = sampleSyntheticTree(treePars{:}, extras);
     for j = 1:numel(grid_lambda)
         % Sample and write data
         traitPars = {grid_lambda(j), grid_mu(j), grid_beta(j)};
-        sampleSyntheticData(s, traitPars{:});
+        fprintf('Data when lambda = %e, mu = %e, beta = %e\n', traitPars{:});
+        sampleSyntheticData(s, traitPars{:}, extras);
         % Write coupled and marginal run files
         arrayfun(@(lag) makeParFile(treePars{:}, traitPars{:}, ...
                                     list_run_length.coupled, ...
-                                    list_sample_interval.coupled, lag), ...
+                                    list_sample_interval.coupled, lag, ...
+                                    extras), ...
                  list_lag);
         makeParFile(treePars{:}, traitPars{:}, list_run_length.marginal, ...
-                    list_sample_interval.marginal);
+                    list_sample_interval.marginal, [], extras);
     end
 end
 % Write file with settings in R
 writeConfig(list_L, list_root_time, list_lambda, list_mu, list_beta, ...
-            list_run_length, list_sample_interval, list_lag, n_chains);
+            list_run_length, list_sample_interval, list_lag, n_chains, extras);
 % Bash script to submit to cluster
 makeSubmitFile(list_L, list_root_time, list_lambda, list_mu, list_beta, ...
                list_lag, n_chains);

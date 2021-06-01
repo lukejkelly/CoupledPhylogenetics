@@ -1,7 +1,7 @@
 function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
-        sample_interval, lag)
+        sample_interval, lag, extras)
 
-    coupling = exist('lag', 'var');
+    coupling = ~isempty(lag);
     if coupling
         [file_dir_local, file_dir_from_traitlab, nex_stem, par_stem] ...
             = fileDest(L, root_time, lambda, mu, beta, lag);
@@ -61,7 +61,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Account_rare_traits = 0\n');
     fprintf(fid, '\n');
 
-    fprintf(fid, 'Impose_clades = 0\n');
+    fprintf(fid, 'Impose_clades = %i\n', extras.clades > 0);
     fprintf(fid, '%% LIST IS IGNORED UNLESS Impose_clades == 1 CAN USE MATLAB VECTOR NOTATION\n');
     fprintf(fid, 'Omit_clade_list =\n');
     fprintf(fid, 'Omit_clade_ages_list =\n');
@@ -73,7 +73,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Random_initial_loss_rate = 0\n');
     fprintf(fid, '\n');
 
-    fprintf(fid, 'Account_for_lateral_transfer = 0\n');
+    fprintf(fid, 'Account_for_lateral_transfer = %i\n', beta > 0);
     fprintf(fid, '%% FOLLOWING IS IGNORED WHEN Account_for_lateral_transfer == 0\n');
     fprintf(fid, 'Vary_borrowing_rate = 1\n');
     fprintf(fid, 'Random_initial_borrowing_rate = 1\n');
@@ -81,7 +81,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Initial_borrowing_rate = %g\n', beta);
     fprintf(fid, '\n');
 
-    fprintf(fid, 'Include_catastrophes = 0\n');
+    fprintf(fid, 'Include_catastrophes = %i\n', extras.ncats > 0);
     fprintf(fid, '%% NEXT 6 LINES ARE IGNORED WHEN Include_catastrophes = 0\n');
     fprintf(fid, '%% FOLLOWING IS IGNORED WHEN Random_initial_cat_death_prob = 1\n');
     fprintf(fid, 'Initial_cat_death_prob = 0.5\n');
@@ -91,7 +91,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Random_initial_cat_rate = 0\n');
     fprintf(fid, '\n');
 
-    fprintf(fid, 'Model_missing = 0\n');
+    fprintf(fid, 'Model_missing = %i\n', extras.missing > 0);
     fprintf(fid, '\n');
 
     fprintf(fid, 'Run_length = %g\n', run_length);
