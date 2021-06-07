@@ -202,11 +202,6 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
                 width = 3 * n_distinct(grid_a$lambda) + 2,
                 height = 3 * n_distinct(grid_a$L))
      }
-     # fig_tv +
-     #     ylim(0, 5) +
-     #     facet_wrap(~ L + lambda, ncol = n_lambda, labeller = "label_both") +
-     #     ggsave(sprintf(fig_template, "tv_axes-clipped"),
-     #            width = 3 * n_lambda + 2, height = 3 * n_L)
 }
 
 make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
@@ -313,8 +308,10 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
         out_i <- out[i, ]
         if (is.na(out_i$c)) {
             x <- get_pars_(out_dir, out_i, NULL)[[par_name]]
-            out$x[[i]] <- x[ind0(k, out_i$run_length / out_i$sample_interval)]
-
+            # use second half of long chain samples
+            m0 <- out_i$run_length / out_i$sample_interval
+            k0 <- floor(m0 / 2)
+            out$x[[i]] <- x[ind0(k0, m0)]
         } else {
             x <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_x")[[par_name]]
             out$x[[i]] <- x[ind0(k, m)]
@@ -374,7 +371,7 @@ get_estimators <- function(out_dir, grid_a, grid_d, par_name, k = NULL,
         m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
     }
     if (is.null(k)) {
-        k <- floor(m * c(1, 2, 4) / 10)
+        k <- floor(m * c(1, 2) / 10)
     }
     if (is.null(grid_d)) {
         out_l <- grid_a
