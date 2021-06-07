@@ -14,7 +14,7 @@ source("coupling-functions.R")
 source("ipm-bounds.R")
 source("tree-metrics.R")
 
-# Set target, e.g. target <- "20210428"
+# Set target, e.g. target <- "20210525"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
@@ -54,7 +54,7 @@ iters <- seq.int(0, max(grid_a$tau, rl_a / si_a, na.rm = TRUE))
 make_tv_figure(out_dir, grid_a, iters)
 
 # getting acceptance rates
-active_moves <- c(1:8, 12)
+active_moves <- c(1:8, 12, 19:20)
 pa_data <- grid_a # %>%
     # filter(!is.na(tau)) %>%
     # select(-tau)
@@ -92,26 +92,55 @@ fig_rate <- fig_rate_data %>%
             width = 3 * n_distinct(grid_a$lag) + 2,
             height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 
-# same plot when lambda dummy indexes the experiments
-lambda_map <- c("vary mu = N, clade = N", "vary mu = Y, clade = N",
-                "vary mu = N, clade = Y", "vary mu = Y, clade = Y")
-fig_rate_data$lambda2 <- lambda_map[fig_rate_data$lambda]
+################################################################################
 
-fig_rate <- fig_rate_data %>%
-    ggplot(aes(x = move, y = pa, fill = move)) +
-    geom_col() +
-    theme(axis.title.x = element_blank(), axis.text.x = element_blank(),
-          axis.ticks.x = element_blank()) +
-    labs(title = sprintf("average acceptance rate by move across n = %d coupled chains",
-                         n_distinct(grid_a$c)),
-         x = sprintf("iter / %d", grid_a$sample_interval[1]),
-         y = "acceptance rate",
-         colour = "move") +
-     facet_wrap(~ lambda2, ncol = length(lambda_map) / 2, scales = "fixed",
-                labeller = "label_both") +
-     ggsave(sprintf(fig_template, "pa-hist"),
-            width = 3 * length(lambda_map) / 2 + 2,
-            height = 3 * length(lambda_map) / 2)
+# Plot log likelihood and root time distributions across the pairs of chains
+# TODO: Properly index different experiments
+
+get_marginal_data <- function(out_dir, grid_a, par_name) {
+    k <- grid_a$lag[1] / grid_a$sample_interval[1]
+    out <- grid_a %>%
+        nest(x = -everything())
+    for (i in seq_len(nrow(out))) {
+        svMisc::progress(i, nrow(out))
+        out_i <- out[i, ]
+        x <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_x")[[par_name]]
+        out$x[[i]] <- x[-seq_len(ind0(k))]
+    }
+    message(sprintf("%s marginal data read", par_name))
+    out <- tidyr::unnest(out, x)
+    return(out)
+}
+
+make_marginal_hist <- function(out_dir, grid_a, par_name, par_label) {
+    out <- get_marginal_data(out_dir, grid_a, par_name)
+    fig <- out %>%
+        ggplot(aes(x = x, colour = as.factor(c)), alpha = 0.5, fill = NA) +
+        geom_density(aes()) +
+        labs(title = sprintf("Marginal distribution of %s", par_name),
+             subtitle = sprintf("x-chain samples %.02e to tau in %d coupled chains\n",
+                                grid_a$lag[1] / grid_a$sample_interval[1],
+                                n_distinct(grid_a$c)),
+             colour = NULL,
+             x = par_label) +
+        facet_wrap(~ lambda, ncol = 1, labeller = "label_both") +
+        ggsave(sprintf(fig_template, sprintf("%s-hist", par_label)),
+               width = 3 * 1 + 2,
+               height = 3 * n_distinct(grid_a$lambda))
+}
+make_marginal_hist(out_dir, grid_a, "integrated_llkd", "llkd")
+make_marginal_hist(out_dir, grid_a, "root_time", "root")
+
+################################################################################
+
+# parameter distances
+source("parameter-distances.R")
+grid_p <- get_par_data(out_dir, grid_a)
+make_par_plot(fig_template, grid_p)
+
+################################################################################
+
+# Not currently in use...
 
 # plot final move (only works for subsample = 1 and chains stop at coupling)
 fig_final_data <- pa_data %>%
