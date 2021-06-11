@@ -1,0 +1,221 @@
+\documentclass[11pt,a4paper]{article}
+
+% Setting up
+\usepackage[margin=1in]{geometry}
+\usepackage{amsthm,amsmath,amsfonts,amssymb,mathtools}
+\usepackage[authoryear,round]{natbib}
+\usepackage{parskip}
+
+\usepackage[sfdefault]{FiraSans}
+\usepackage{eucal}
+\usepackage{palatino}
+\usepackage[T1]{fontenc}
+
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{color,colortbl}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{subcaption}
+
+\usepackage{algorithm,algpseudocode}
+\algrenewcommand\algorithmicindent{1em}
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\Input{\item[\algorithmicinput]}%
+\algnewcommand\Output{\item[\algorithmicoutput]}%
+
+\usepackage{graphicx}
+% \graphicspath{{./figures/}
+
+\usepackage[colorlinks,citecolor=RoyalBlue,urlcolor=RoyalBlue,
+            linkcolor=RoyalBlue,bookmarks=false]{hyperref}
+
+% Some macros
+\usepackage{luke-macros}
+
+% \definecolor{myblue}{rgb}{0.25, 0.75, 1.00}
+% \definecolor{mygreen}{rgb}{0.75, 1.00, 0.00}
+% \definecolor{myred}{rgb}{1.00, 0.50, 0.50}
+% \definecolor{myorange}{rgb}{1.00 0.75 0.25}
+
+\title{\vspace{-2.5cm} }
+\author{Luke Kelly}
+% \date{}
+
+% Local macros
+\newcommand{\Xp}{{X'}}
+\newcommand{\pX}{\pi(X)}
+\newcommand{\pXp}{\pi(\Xp)}
+
+\newcommand{\Yp}{{Y'}}
+\newcommand{\pY}{\pi(Y)}
+\newcommand{\pYp}{\pi(\Yp)}
+
+\renewcommand{\ni}{n_i}
+\newcommand{\nip}{{n'}_i}
+
+\newcommand{\Dp}{{\Delta'}}
+\newcommand{\Di}{\Delta_i}
+\newcommand{\Dip}{{\Delta'}_i}
+
+\begin{document}
+
+\maketitle
+% \tableofcontents
+
+%%
+\section{Set up}
+
+Let $ X $ denote the current state when we ignore catastrophe locations and $ Y $ when we record them.
+\begin{itemize}
+    \item Branch $ i $ has length $ \Di $ and $ \ni $ catastrophes
+    \item The length of the tree is $ \Delta = \sum_i \Di $ and total number of catastrophes $ n = \sum_i \ni $.
+\end{itemize}
+We denote the respective proposed states $ \Xp $ and $ \Yp $. We marginalise out the $ \Gamma(a, b) $ prior on $ \rho $, the  rate of the catastrophe Poisson process.
+
+The prior on $ X $'s catastrophe counts is
+\begin{align*}
+    \pX
+        &= \int \prod_i \frac{(\rho \Di)^{\ni} e^{-\rho \Di}}{\ni!} \frac{b^{a} \rho^{a - 1} e^{-b \rho}}{\Gamma(a)} \ud \rho \\
+        &= \frac{b^a}{\Gamma(a)} \frac{\Gamma(a + n)}{(b + \Delta)^{a + n}} \prod_i \frac{\Di^{\ni}}{\ni !} \\
+        &= \frac{\Gamma(a + n)}{\Gamma(a) \prod_i \ni!} \left(\frac{b}{b + \Delta}\right)^{a} \prod_i \left(\frac{\Di}{b + \Delta}\right)^{\ni},
+\end{align*}
+a $ \NM{a}{\frac{b}{b + \Delta}, \{\frac{\Di}{b + \Delta}\}_i} $ distribution on branch counts; that is, keep sampling until $ a $ failures, where the failure probability is $ b / (b + \Delta) $.
+
+The prior on $ Y $'s catastrophe locations includes the density of locations on branches,
+\[
+    \pY = \pX \prod_i \frac{\ni!}{\Di^{\ni}} = \frac{b^a}{\Gamma(a)} \frac{\Gamma(a + n)}{(b + \Delta)^{a + n}}.
+\]
+
+%%
+\section{Proposals}
+
+Suppose we're sampling from the prior, then we're interested computing the Hastings ratio for a proposal $ X \rightarrow X' $,
+\[
+    r(X, X') = \frac{\pXp}{\pX} \frac{Q(\Xp, X)}{Q(X, \Xp)}.
+\]
+If we construct proposals deterministically via an involution $ f $, then
+\[
+    r(X, X')
+        = \frac{\pi(f(X))}{\pX} \abs*{\frac{\pd f(X)}{\pd X}}.
+\]
+We can incorporate a random component $ u \sim p $ to this deterministic framework. We extend the target to $ \pi(X, u) = \pi(X) p(u \given X) $ and propose $ f(X, u) = (X', u') $, so
+\[
+    r\big((X, u), (X', u')\big)
+        = \frac{\pi(f(X))}{\pi(X)} \frac{p(f(u) \given f(X)}{p(u \given X)} \abs*{\frac{\pd f(X, u)}{\pd (X, u)}}.
+\]
+
+%%
+\noindent\rule{\textwidth}{1pt}
+
+\emph{I write out the details of the deterministic approach for my own records.}
+
+We follow Tierney (Ann. Appl. Prob., 1998) with some simplifications to the notation.
+
+We have a sigma-finite measure $ \mu(\ud x, \ud y) $ on the product space. Let $ \nu(\ud x, \ud y) = \mu(\ud x, \ud y) +  \mu(\ud y, \ud x) $ be our dominating measure and define densities
+\begin{itemize}
+    \item $ h(x, y) $ density of $ \mu(\ud x, \ud y) $ with respect to $ \nu $,
+    \item $ h(y, x) $ density of $ \mu'(\ud x, \ud y) = \mu(\ud y, \ud x) $ with respect to $ \nu $.
+\end{itemize}
+Then $ r(x, y) = h(y, x) / h(x, y) = \ud \mu' / \ud \mu $. If we let $ \mu(\ud x, \ud y) = \pi(\ud x) Q(x, \ud y) $, with $ \pi(\ud x) = \pi(x) \nu(\ud x) $ and $ Q(x, \ud y) = q(x, y) \nu(\ud y) $, then we get back the Hastings ratio. Tierney shows that these things exist and are well defined.
+
+We now have a deterministic proposal $ y = f(x) $ so $ Q(x, \ud y) = \delta_{f(x)}(\ud y) $. We define $ \pi'(\ud x) = \pi(f^{-1}(\ud x)) $ and dominating measure $ \nu(\ud x) = \pi(\ud x) + \pi'(\ud x) $.
+
+We switch to following \href{https://palaisien.herokuapp.com/static/programme/slides/2021-01-05_Alain-Durmus.pdf}{Durmus et al.}. For Lebesgue measure $ \lambda(\ud x) $, we have
+\[
+    \nu(\ud x)
+        = \pi(\ud x) + \pi(f^{-1}(\ud x))
+        = \{\pi(x) + \pi(f^{-1}(x)) J_{f^{-1}}(x)\} \lambda(\ud x),
+\]
+where we have used the fact that $ f = f^{-1} $ and the Jacobian is now written
+\[
+    J_f(z)
+        = \abs*{\frac{\pd f(z)}{\pd z}}
+        = J_f(f(z))^{-1}.
+\]
+For the measures
+\begin{align*}
+    \mu(\ud x, \ud y) &= \pi(\ud x) \delta_{f(x)}(\ud y), \\
+    \mu'(\ud x, \ud y) &= \pi(\ud y) \delta_{f^{-1}(y)}(\ud x),
+\end{align*}
+we have the following densities with respect to $ \nu $,
+\begin{align*}
+    h(x, y) &= k(x) \ind{f(x)}(y), \\
+    h'(x, y) &= k(y) \ind{f(y)}(x) = k(f(x)) \ind{f(x)}(y),
+\end{align*}
+where $ k(z) = \pi(\ud z) / \nu(\ud z) $.
+
+From now on we assume that $ (x, y) \in R = \{(x, y) : k(x) > 0, k(f(x)) > 0, y = f(x)\} $.
+
+Finally, we obtain
+\begin{align*}
+    r(x, y)
+        = \frac{h'(x, y)}{h(x, y)}
+        &= \frac{k(f(x))}{k(x)} \frac{\ind{f(x)}(y)}{\ind{f(x)}(y)} \\
+        &= \frac{\pi(f(x))}{\pi(x)} \frac{\pi(x) + \pi(f^{-1}(x)) J_{f^{-1}}(x)}{\pi(f(x)) + \pi(f^{-1}(f(x))) J_{f^{-1}}(f(x))} \\
+        &= \frac{\pi(f(x))}{\pi(x)} \frac{\pi(x) + \pi(f(x)) J_f(x)}{\pi(f(x)) + \pi(x) J_f(x)^{-1}} \\
+        &= \frac{\pi(f(x))}{\pi(x)} \frac{\pi(x) J_f(x)^{-1} + \pi(f(x))}{\pi(f(x)) + \pi(x) J_f(x)^{-1}} J_f(x) \\
+        &= \frac{\pi(f(x))}{\pi(x)} J_f(x).
+\end{align*}
+
+%%
+\section{Moves potentially affecting catastrophes}
+
+The tree has $ L $ leaves so $ L - 1 $ internal nodes and $ 2L - 2 $ branches which can hold catastrophes. We index branches by offspring node.
+
+The ratios of priors for current and proposed states are
+\begin{align*}
+    \frac{\pXp}{\pX}
+        &= \frac{\Gamma(a + n')}{\Gamma(a + n)} \frac{(b + \Delta)^{a + n}}{(b + \Dp)^{a + n'}} \prod_i \dfrac{\Dip^{\ni'}}{\Di^{\ni}} \dfrac{\ni!}{\nip!} \\
+    \frac{\pYp}{\pY}
+        &= \frac{\Gamma(a + n')}{\Gamma(a + n)} \frac{(b + \Delta)^{a + n}}{(b + \Dp)^{a + n'}}.
+\end{align*}
+For moves on the tree, catastrophes in $ X $ are unaware of the change so are unaffected other than through their prior, whereas moves on $ Y $ require an extra Jacobian term.
+
+For linear transformations of times, we draw $ \delta \sim \Unif{1/2, 2} $ then apply to each parameter $ z $
+\[
+    z' = t_0 + \delta(z - t_0),
+\]
+where $ t_0 $ is the most recent node time. We change internal node times in $ X $ and both node and catastrophe times in $ Y $. The number of catastrophes on each branch is unchanged.
+
+For $ (X, \delta) \xrightarrow{f} (X', 1 / \delta) $, we have
+\begin{align*}
+    J_f &= \delta^{(L - 1) - 2}, \\
+    \frac{\pXp}{\pX}
+        &= \left(\frac{b + \Delta}{b + \delta \Delta}\right)^{a + n} \delta^n.
+\end{align*}
+For $ (Y, \delta) \xrightarrow{f} (Y', 1 / \delta) $, we can scale the catastrophe times in place, so
+\begin{align*}
+    J_f &= \delta^{(L - 1) + n - 2}, \\
+    \frac{\pYp}{\pY}
+        &= \left(\frac{b + \Delta}{b + \delta \Delta}\right)^{a + n}.
+\end{align*}
+In this case, the product of Jacobian and ratio of priors is identical.
+
+For changing other parts of the tree then the only terms which appear above correspond to those which changed.
+
+A more general approach to the move on $ Y $ is to remove the catastrophe times and resample them in the same relative locations (as that is how we parameterise their respective times). In that case, the Jacobian ignores and the catastrophes and we would have
+\begin{align*}
+    J_f &= \delta^{(L - 1) - 2}, \\
+    \frac{Q(Y', Y)}{Q(Y, Y')}
+        &= \prod_i \frac{\ni! / \Di^{\ni}}{\nip! / {\Dip}^{\nip}}
+            = \prod_i \left(\frac{\delta \Di}{\Di}\right)^{\ni}
+            = \delta^n,
+        \\
+    \frac{\pYp}{\pY}
+        &= \left(\frac{b + \Delta}{b + \delta \Delta}\right)^{a + n}.
+\end{align*}
+If resampling sounds too weird then we could potentially think of it as just a linear transformation of the catastrophe times into their new positions.
+
+The number of catastrophes on each branch remains constant except for SPR moves when a branch with catastrophes becomes the root: catastrophes are
+\begin{itemize}
+    \item lost when we ignore their times
+    \item moved to the old root when we are recording their times.
+\end{itemize}
+
+% %%
+% \bibliographystyle{plainnat}%
+% \bibliography{references}%
+
+\end{document}
