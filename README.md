@@ -15,6 +15,15 @@ Each experiment is a folder named `<yyyymmdd>` (which is `.gitignore`d)
     * change the PBS directives in `submit.sh`, if necessary
     * `job-a.pbs` is for the coupled chains and `job-b.pbs` the long, single chains to get ground truth estimates.
 
+### Make additional edits, if necessary
+If making multiple copies of a folder, one can use `sed` to update the references; for example,
+```bash
+cp -r 20210615 20210615a
+cd 20210615a
+grep -r -l 20210615 * | xargs sed -i "" 's/\(20210615\)/\1a/g'
+```
+on Mac, there is no argument to `-i` on Linux.
+
 ### Run experiment
 From the directory of the experiment, execute `bash submit.sh` to submit the jobs to the queue.
 
