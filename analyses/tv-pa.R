@@ -133,7 +133,9 @@ make_marginal_hist(out_dir, grid_a, "root_time", "root")
 
 ################################################################################
 
-# parameter distances
+# Parameter distances
+# not particularly useful but keeping for the time being
+
 source("parameter-distances.R")
 grid_p <- get_par_data(out_dir, grid_a)
 make_par_plot(fig_template, grid_p)
