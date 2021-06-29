@@ -18,7 +18,7 @@ function sampleSyntheticData(s, lambda, mu, beta, extras)
     % Masking matrix to incorporate missing data
     if extras.missing > 0
         disp('Generating missingness masks');
-        xi = [s(rl).xi];
+        xi = fliplr([s(rl).xi]);
         M = (rand(size(D)) > repmat(xi, size(D, 1), 1));
         D(M) = 2;
     end

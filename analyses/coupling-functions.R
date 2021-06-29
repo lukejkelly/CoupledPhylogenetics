@@ -69,8 +69,8 @@ get_par_names <- function() {
 }
 
 get_pars <- function(par_file) {
-    pars <- readr::read_table(par_file, get_par_names(), readr::cols(),
-                              skip = 3)
+    pars <- readr::read_table2(par_file, get_par_names()[c(2:5, 8:12)],
+                              "-dddd--ddidd-", skip = 3)
     return(pars)
 }
 
