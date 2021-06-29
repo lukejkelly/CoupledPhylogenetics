@@ -22,10 +22,12 @@ grid_a <- grids$grid_a
 grid_b <- grids$grid_b
 
 grid_d <- grid_b # grid_a %>% nest(s = c(lag, c)) %>% select(-s)
-grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
-grid_d$tr <- grid_d %>%
-    select(L, root_time, lambda, mu, beta) %>%
-    pmap(function(...) read_nexus_file(target_dir, ...))
+# grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
+# grid_d$tr <- grid_d %>%
+#     select(L, root_time, lambda, mu, beta) %>%
+#     pmap(function(...) read_nexus_file(target_dir, ...))
+grid_d$cl <- NA
+grid_d$tr <- NA
 
 # Target figure and output templates and directories
 fig_dir <- file.path(target_dir, "figs")
@@ -55,24 +57,25 @@ make_tau_ecdf(grid_a)
 # Integral probablity metrics
 iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
 make_tv_figure(out_dir, grid_a, iters)
-make_w1_figure(out_dir, grid_a, grid_d, iters)
+# make_w1_figure(out_dir, grid_a, grid_d, iters)
 
 ################################################################################
 # Marginal histograms
 make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
 make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
+make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
 
 ################################################################################
 # Estimators
 make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
-                    "clade")
+# make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
+#                     "clade")
 make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "topology support",
                     "topology")
 
 trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
-                    "clade")
+# trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
+#                     "clade")
 trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
                     "topology")
 
