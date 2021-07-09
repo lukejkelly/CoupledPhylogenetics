@@ -173,6 +173,14 @@ make_tau_ecdf <- function(grid_a) {
     }
 }
 
+get_estimator_k <- function(grid_a) {
+    grid_a <- grid_a %>%
+        nest(gr = c(c, tau)) %>%
+        mutate(k = map(gr, ~ quantile(.$tau, 0.99))) %>%
+        unnest(cols = c(gr, k))
+    return(grid_a)
+}
+
 make_tv_figure <- function(out_dir, grid_a, iters) {
     tv_data <- expand_grid(grid_a, iter = iters, tv = NA_real_)
     tv_data$tv <- tv_bound_estimator(tv_data$tau,
