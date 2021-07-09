@@ -11,7 +11,7 @@ source("ipm-bounds.R")
 source("tree-metrics.R")
 source("rwty-functions.R")
 
-# Set target, e.g. target <- "20210428"
+# Set target, e.g. target <- "20210624d"
 target_dir <- file.path("..", target)
 
 # Make grids of config and run settings
@@ -52,6 +52,10 @@ compute_tree_distances(out_dir, grid_a)
 # Coupling times
 grid_a$tau <- get_coupling_times(out_dir, grid_a)
 make_tau_ecdf(grid_a)
+
+################################################################################
+# Sequence start and endpoints
+grid_a$k <- get_estimator_k(grid_a)
 
 ################################################################################
 # Integral probablity metrics
