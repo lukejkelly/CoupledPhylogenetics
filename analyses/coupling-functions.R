@@ -164,10 +164,11 @@ make_tau_ecdf <- function(grid_a) {
              y = "Fhat",
              colour = "lag")
     for (scales in c("free", "fixed")) {
-        fig_tau +
-        facet_wrap(~ L + lambda, ncol = n_distinct(grid_a$lambda),
-                   scales = scales, labeller = "label_both") +
+        fig_p <- fig_tau +
+            facet_wrap(~ L + lambda, ncol = n_distinct(grid_a$lambda),
+                       scales = scales, labeller = "label_both")
         ggsave(sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
+               fig_p,
                width = 3 * n_distinct(grid_a$lambda) + 2,
                height = 3 * n_distinct(grid_a$L))
     }
@@ -202,11 +203,12 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
              y = "d_tv",
              colour = "lag")
      for (scales in c("free", "fixed")) {
-         fig_tv +
-         scale_y_continuous(trans = "log1p") +
-         facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
-                    labeller = "label_both") +
+         fig_p <- fig_tv +
+             scale_y_continuous(trans = "log1p") +
+             facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
+                        labeller = "label_both")
          ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
+                fig_p,
                 width = 3 * n_distinct(grid_a$lambda) + 2,
                 height = 3 * n_distinct(grid_a$L))
      }
@@ -283,27 +285,11 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
              y = "d_w1",
              colour = "lag") +
         facet_wrap(~ L + lambda + stat, ncol = 3, scales = "free",
-                   labeller = "label_both") +
-        ggsave(sprintf(fig_template, "w1_axes-free"),
-               width = 3 * 3 + 2,
-               height = prod(3, n_distinct(grid_a$L),
-                             n_distinct(grid_a$lambda)))
-
-    # for (scales in c("free", "fixed")) {
-    #     fig_w1 +
-    #         facet_wrap(~ L + lambda + stat, ncol = 3, scales = scales,
-    #                    labeller = "label_both") +
-    #         ggsave(sprintf(fig_template, sprintf("w1_axes-%s", scales)),
-    #                width = 3 * 3 + 2,
-    #                height = prod(3, n_distinct(grid_a$L),
-    #                              n_distinct(grid_a$lambda)))
-    # }
-    # fig_w1 +
-    #     ylim(0, 5) +
-    #     facet_wrap(~ L + lambda + stat, ncol = 3) +
-    #     ggsave(sprintf(fig_template, "w1_axes-clipped"),
-    #            width = 3 * 3 + 2,
-    #            height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
+                   labeller = "label_both")
+    ggsave(sprintf(fig_template, "w1_axes-free"),
+           fig_w1,
+           width = 3 * 3 + 2,
+           height = prod(3, n_distinct(grid_a$L), n_distinct(grid_a$lambda)))
 }
 
 # Make marginal histograms
@@ -351,11 +337,12 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
              colour = NULL,
              x = par_label)
     for (scales in c("free", "fixed")) {
-        fig +
+        fig_p <- fig +
         facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                   labeller = "label_both") +
-        ggsave(sprintf(fig_template,
-                       sprintf("%s-hist_axes-%s", par_label, scales)),
+                   labeller = "label_both")
+        ggsave(sprintf(fig_template, sprintf("%s-hist_axes-%s", par_label,
+                                             scales)),
+               fig_p,
                width = 3 * n_distinct(grid_a$lambda) + 2,
                height = 3 * n_distinct(grid_a$L))
     }
@@ -501,11 +488,12 @@ make_estimator_hist <- function(out_a, out_b, par_name, par_label) {
                                 out_b$run_length[1], out_b$sample_interval[1])) +
              guides(colour = guide_legend(title = sprintf("k / %d", out_a$sample_interval)))
     for (scales in c("free", "fixed")) {
-        fig +
-        facet_wrap(~ L + lambda + lag + name, ncol = 3, scales = scales,
-                   labeller = "label_both") +
+        fig_p <- fig +
+            facet_wrap(~ L + lambda + lag + name, ncol = 3, scales = scales,
+                       labeller = "label_both")
         ggsave(sprintf(fig_template,
                        sprintf("%s-est-hist_axes-%s", par_label, scales)),
+               fig_p,
                width = 3 * 3 + 2,
                height = 3 * prod(n_distinct(out_a$L), n_distinct(out_a$lambda),
                                  n_distinct(out_a$lag)))
@@ -528,11 +516,12 @@ make_estimator_bias <- function(out_a, par_name, par_label) {
                                                      out_a$sample_interval[1])),
                fill = FALSE)
     for (scales in c("free", "fixed")) {
-        fig +
-        facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
-                   scales = scales, labeller = "label_both") +
+        fig_p <- fig +
+            facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
+                       scales = scales, labeller = "label_both")
         ggsave(sprintf(fig_template,
                        sprintf("%s-bc-tau_axes-%s", par_label, scales)),
+               fig_p,
                width = 3 * n_distinct(out_a$lag) + 2,
                height = 3 * n_distinct(out_a$L) * n_distinct(out_a$lambda))
     }
@@ -590,11 +579,12 @@ make_estimator_mse <- function(out_a, out_b, par_name, par_label) {
                                 length(n_distinct(out_a$c))),
              x = "k")
      for (scales in c("free", "fixed")) {
-         fig +
-         facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
-                    scales = scales, labeller = "label_both") +
+         fig_p <- fig +
+             facet_wrap(~ L + lambda + lag, ncol = n_distinct(out_a$lag),
+                        scales = scales, labeller = "label_both")
          ggsave(sprintf(fig_template,
                         sprintf("%s-mse_axes-%s", par_label, scales)),
+                fig_p,
                 width = 3 * n_distinct(out_a$lag) + 2,
                 height = 3 * n_distinct(out_a$L) * n_distinct(out_a$lambda))
      }
@@ -677,17 +667,17 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_d, par_name,
              colour = "k") +
          scale_y_continuous(trans = "log1p") +
          facet_wrap(~ L + lambda + lag + estimator, ncol = 3,
-                    scales = "free", labeller = "label_both") +
-         ggsave(sprintf(fig_template, sprintf("%s-mse-trace", par_label)),
-                width = 3 * 3 + 2,
-                height = 3 * prod(n_distinct(grid_a$L),
-                                  n_distinct(grid_a$lambda),
-                                  n_distinct(grid_a$lag)))
+                    scales = "free", labeller = "label_both")
+     ggsave(sprintf(fig_template, sprintf("%s-mse-trace", par_label)),
+            fig1,
+            width = 3 * 3 + 2,
+            height = 3 * prod(n_distinct(grid_a$L), n_distinct(grid_a$lambda),
+                              n_distinct(grid_a$lag)))
 
 
     # plot sd of bc
     fig_data$sd_bc <- map_dbl(fig_data$s, ~sd(.$bc))
-    fig <- fig_data %>%
+    fig2 <- fig_data %>%
         ggplot(aes(x = m, y = sd_bc, colour = as.factor(k))) +
         geom_line(alpha = 0.75) +
         labs(title = sprintf("SD of bias correction (bc) in unbiased estimators of %s as k and m vary",
@@ -700,10 +690,11 @@ trace_estimator <- function(out_dir, grid_a, grid_b, grid_d, par_name,
              colour = "k") +
          scale_y_continuous(trans = "log1p") +
          facet_wrap(~ L + lambda + lag, ncol = n_distinct(grid_a$lag),
-                    scales = "free", labeller = "label_both") +
-         ggsave(sprintf(fig_template, sprintf("%s-bc-trace", par_label)),
-         width = 3 * 3 + 2,
-         height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
+                    scales = "free", labeller = "label_both")
+     ggsave(sprintf(fig_template, sprintf("%s-bc-trace", par_label)),
+            fig2,
+            width = 3 * 3 + 2,
+            height = 3 * n_distinct(grid_a$L) * n_distinct(grid_a$lambda))
 }
 
 # TraitLab move names
