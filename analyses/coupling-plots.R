@@ -5,18 +5,16 @@ library("purrr")
 library("fs")
 library("rwty")
 
-source("estimators.R")
-source("coupling-functions.R")
-source("ipm-bounds.R")
-source("tree-metrics.R")
-source("rwty-functions.R")
-
-# Set target, e.g. target <- "20210624d"
-target_dir <- file.path("..", target)
+# Run from current experiment folder at same level in hierarchy as analyses/
+source_analysis_file <- function(s) source(file.path("..", "analyses", s))
+source_analysis_file("estimators.R")
+source_analysis_file("coupling-functions.R")
+source_analysis_file("ipm-bounds.R")
+source_analysis_file("tree-metrics.R")
+source_analysis_file("rwty-functions.R")
 
 # Make grids of config and run settings
-config_file <- file.path(target_dir, "config.R")
-grids <- make_grid(config_file)
+grids <- make_grid("config.R")
 # Coupled shorter runs is a, longer run is b, c is indices of coupled runs
 grid_a <- grids$grid_a
 grid_b <- grids$grid_b
@@ -30,11 +28,10 @@ grid_d$cl <- NA
 grid_d$tr <- NA
 
 # Target figure and output templates and directories
-fig_dir <- file.path(target_dir, "figs")
+fig_dir <- "figs"
 dir_create(fig_dir)
 fig_template <- sprintf("%s/%%s.pdf", fig_dir)
-
-out_dir <- file.path(target_dir, "output")
+out_dir <- "output"
 
 # Some useful constants
 n_L <- n_distinct(grid_a$L)
