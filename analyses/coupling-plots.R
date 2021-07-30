@@ -78,7 +78,7 @@ trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
 # trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
 #                     "clade")
 trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
-                    "topology")
+                "topology")
 
 ################################################################################
 # Are We There Yet?

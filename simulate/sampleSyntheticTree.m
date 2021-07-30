@@ -1,4 +1,4 @@
-function s = sampleSyntheticTree(L, root_time, extras)
+function [s, clade] = sampleSyntheticTree(L, root_time, extras)
     % Node times scaled so that root age is root_time
     global ROOT ANST
 
@@ -12,10 +12,21 @@ function s = sampleSyntheticTree(L, root_time, extras)
        s(j).time = s(j).time * root_time / old_root_time;
     end
 
+    % Make some clades
+    if extras.clades > 0
+        fprintf('Synthesising %i clades\n', extras.clades);
+        clade = synthclades(s, extras.clades, 2, 1 - rand^3);
+        rootmax = (1 + rand) * s([s.type] == ROOT).time;
+        prior = unitTests.clade2prior(clade, rootmax);
+        s = treeclades(s, prior.clade);
+    else
+        clade = [];
+    end
+
     % Sample catastrophes
     if extras.ncats > 0
         fprintf('Sampling %i catastrophe locations\n', extras.ncats);
-        bInds = find([s.type] < ROOT);
+        bInds = find(~cellfun(@isempty, {s.clade}));
         bLengths = arrayfun(@(i) s(s(i).parent).time - s(i).time, bInds);
         cInds = bInds(randsample(length(bInds), extras.ncats, true, bLengths));
         for j = cInds
