@@ -1,4 +1,4 @@
-function sampleSyntheticData(s, lambda, mu, beta, extras)
+function sampleSyntheticData(s, lambda, mu, beta, extras, clade)
     % Sample synthetic data and write it to file
     global LEAF ROOT
 
@@ -26,14 +26,6 @@ function sampleSyntheticData(s, lambda, mu, beta, extras)
     % Adding data to leaves
     for l = 1:L
       s(rl(l)).dat = D(:, L + 1 - l)';
-    end
-
-    % Make some clades
-    if extras.clades > 0
-        fprintf('Synthesising %i clades\n', extras.clades);
-        clade = synthclades(s, extras.clades, 2, 1 - rand^3);
-    else
-        clade = [];
     end
 
     [file_dir, ~, nex_stem] = fileDest(L, root_time, lambda, mu, beta);

@@ -21,12 +21,12 @@ for i = 1:numel(grid_L)
     % We'll use the same tree for each parameter combination
     treePars = {grid_L(i), grid_root_time(i)};
     fprintf('Sampling tree with %i leaves and root at %e\n', treePars{:});
-    s = sampleSyntheticTree(treePars{:}, extras);
+    [s, clade] = sampleSyntheticTree(treePars{:}, extras);
     for j = 1:numel(grid_lambda)
         % Sample and write data
         traitPars = {grid_lambda(j), grid_mu(j), grid_beta(j)};
         fprintf('Data when lambda = %e, mu = %e, beta = %e\n', traitPars{:});
-        sampleSyntheticData(s, traitPars{:}, extras);
+        sampleSyntheticData(s, traitPars{:}, extras, clade);
         % Write coupled and marginal run files
         arrayfun(@(lag) makeParFile(treePars{:}, traitPars{:}, ...
                                     list_run_length.coupled, ...
