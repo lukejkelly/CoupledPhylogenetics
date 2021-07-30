@@ -30,7 +30,7 @@ get_rwty_trees <- function(out_dir, grid_i) {
 
 get_rwty_pars <- function(out_dir, grid_i) {
     pars <- get_pars_(out_dir, grid_i, grid_i$lag, grid_i$c, "_x") %>%
-        select(-c(sample, p, lambda, log_likelihood)) %>%
+        select(-c(rho, log_likelihood)) %>%
         slice(ind0(0, grid_i$run_length / grid_i$sample_interval)) %>%
         as.data.frame()
     return(pars)

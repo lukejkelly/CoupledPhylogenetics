@@ -85,22 +85,21 @@ trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
 grid_e <- get_rwty_output(out_dir, grid_a)
 
 fig_rwty_data <- grid_e %>%
-    select(-c(c, tau)) %>%
-    group_by(L, root_time, lambda, mu, beta, run_length, sample_interval, lag)
+    select(-c(c, tau, lag)) %>%
+    group_by(L, root_time, lambda, mu, beta, run_length, sample_interval)
 fig_rwty <- fig_rwty_data %>%
     group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
                labs(# title = sprintf("L = %d, lambda = %g, lag = %g", .y$L,
                     #                .y$lambda, .y$lag),
                     # subtitle
-                    title = sprintf("window size = %d", win_size(.y)),
+                    title = sprintf("window size / %d = %d",
+                                    .y$sample_interval, win_size(.y)),
                     x = sprintf("iteration / %d", .y$sample_interval)))
 
 gridExtra::grid.arrange(grobs = fig_rwty,
-                        ncol = n_distinct(fig_rwty_data$lag),
-                        nrow = prod(n_distinct(fig_rwty_data$L),
-                                    n_distinct(fig_rwty_data$lambda))) %>%
+                        ncol = n_distinct(fig_rwty_data$lambda),
+                        nrow = n_distinct(fig_rwty_data$L)) %>%
     ggsave(sprintf(fig_template, "asdsf"),
            plot = .,
-           width = 3 * n_distinct(fig_rwty_data$lag) + 2,
-           height = 3 * prod(n_distinct(fig_rwty_data$L),
-                             n_distinct(fig_rwty_data$lambda)))
+           width = 3 * n_distinct(fig_rwty_data$lambda) + 2,
+           height = 3 * n_distinct(fig_rwty_data$L))

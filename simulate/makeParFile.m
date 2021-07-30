@@ -54,7 +54,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Uniform_prior_on_tree_topologies = 1\n');
     fprintf(fid, 'Uniform_prior_on_labelled_histories = 0\n');
     fprintf(fid, '%% FOLLOWING IS IGNORED UNLESS Flat_prior_on_tree == 1\n');
-    fprintf(fid, 'Max_root_age = 10000\n');
+    fprintf(fid, 'Max_root_age = 2000\n');
     fprintf(fid, '\n');
 
     fprintf(fid, 'Vary_topology = 1\n');
