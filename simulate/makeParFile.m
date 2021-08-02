@@ -84,7 +84,7 @@ function makeParFile(L, root_time, lambda, mu, beta, run_length, ...
     fprintf(fid, 'Include_catastrophes = %i\n', extras.ncats > 0);
     fprintf(fid, '%% NEXT 6 LINES ARE IGNORED WHEN Include_catastrophes = 0\n');
     fprintf(fid, '%% FOLLOWING IS IGNORED WHEN Random_initial_cat_death_prob = 1\n');
-    fprintf(fid, 'Initial_cat_death_prob = 0.5\n');
+    fprintf(fid, 'Initial_cat_death_prob = %g\n', extras.kappa);
     fprintf(fid, 'Random_initial_cat_death_prob = 0\n');
     fprintf(fid, '%% FOLLOWING IS IGNORED WHEN Random_initial_cat_rate = 1\n');
     fprintf(fid, 'Initial_cat_rate = 0.00015\n');
