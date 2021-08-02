@@ -1,3 +1,4 @@
+rng(20210820);
 % Global variables from TraitLab
 GlobalSwitches
 GlobalValues
