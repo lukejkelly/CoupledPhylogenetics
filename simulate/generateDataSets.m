@@ -1,4 +1,4 @@
-rng(20210820);
+rng(yyyymmdd(datetime));
 % Global variables from TraitLab
 GlobalSwitches
 GlobalValues
