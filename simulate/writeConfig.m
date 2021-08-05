@@ -2,8 +2,6 @@ function writeConfig(list_L, list_root_time, list_lambda, list_mu, ...
         list_beta, list_run_length, list_sample_interval, list_lag, ...
         n_chains, extras)
 
-    global LEAF;
-
     fid = fopen(fullfile(fileDest(), 'config.R'), 'w');
 
     fprintf(fid, 'list_L <- c(%s)\n', formatList(list_L, '%d'));

@@ -35,7 +35,7 @@ function makeJobFile(job_type)
     % Cluster job starts from home directory
     fprintf(fid, 'cd "$HOME"/TraitLabSDLT-coupled\n');
     fprintf(fid, 'git  status\n');
-    fprintf(fid, '/usr/local/bin/matlab -nodesktop -nodisplay \\\n');
+    fprintf(fid, '/usr/local/bin/matlab -nodesktop -nodisplay -nojvm \\\n');
     switch job_type
     case 'a'
         fprintf(fid, ...
