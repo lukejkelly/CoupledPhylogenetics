@@ -9,9 +9,10 @@ function makeJobFile(job_type)
     fprintf(fid, '#SBATCH --mail-type=END\n');
     fprintf(fid, '#SBATCH -N 1\n');
     fprintf(fid, '#SBATCH -n 1\n');
-    fprintf(fid, '#SBATCH -c 1\n');
 
-    switch job_type
+    fprintf(fid, '#SBATCH -c %s\n', job_type(2));
+
+    switch job_type(1)
     case 'a'
         fprintf(fid, '#SBATCH -o log/slurm-%%A_%%a.out\n');
         fprintf(fid, '#SBATCH -t 48:00:00\n\n');
@@ -23,7 +24,7 @@ function makeJobFile(job_type)
     fprintf(fid, 'sleep $[ ($RANDOM %% 60) + 1 ]s\n\n');
 
     % fprintf(fid, 'PAR_FILE=$(LC_NUMERIC="en_GB.UTF-8" \\\n');
-    switch job_type
+    switch job_type(1)
     case 'a'
         fprintf(fid, 'PAR_FILE=$(printf "L%%d_r%%e_l%%e_m%%e_b%%e_l%%e" \\\n');
         fprintf(fid, '                  "$L" "$ROOT_TIME" "$LAMBDA" "$MU" "$BETA" "$LAG")\n\n');
@@ -36,7 +37,7 @@ function makeJobFile(job_type)
     fprintf(fid, 'cd "$HOME"/TraitLabSDLT-coupled\n');
     fprintf(fid, 'git  status\n');
     fprintf(fid, '/usr/local/bin/matlab -nodesktop -nodisplay -nojvm \\\n');
-    switch job_type
+    switch job_type(1)
     case 'a'
         fprintf(fid, ...
                 '    -r "batchTraitLab(''%s/${PAR_FILE}.par'', $SLURM_ARRAY_TASK_ID); exit"\n', ...
