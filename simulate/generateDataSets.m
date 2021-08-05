@@ -45,5 +45,7 @@ writeConfig(list_L, list_root_time, list_lambda, list_mu, list_beta, ...
 makeSubmitFile(list_L, list_root_time, list_lambda, list_mu, list_beta, ...
                list_lag, n_chains);
 % PBS files for coupled (a) and marginal (b) experiments
-makeJobFile('a');
-makeJobFile('b');
+makeJobFile('a1');
+makeJobFile('a2');
+makeJobFile('b1');
+makeJobFile('b2');
