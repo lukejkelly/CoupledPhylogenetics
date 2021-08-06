@@ -42,8 +42,8 @@ rl_a <- grid_a$run_length[1]
 si_a <- grid_a$sample_interval[1]
 
 ################################################################################
-# Compute tree distances and write to file
-compute_tree_distances(out_dir, grid_a)
+# # Compute tree distances and write to file
+# compute_tree_distances(out_dir, grid_a)
 
 ################################################################################
 # Coupling times
@@ -57,6 +57,7 @@ grid_a$k <- get_estimator_k(grid_a)
 ################################################################################
 # Integral probablity metrics
 iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
+iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
 make_tv_figure(out_dir, grid_a, iters)
 # make_w1_figure(out_dir, grid_a, grid_d, iters)
 
@@ -65,6 +66,7 @@ make_tv_figure(out_dir, grid_a, iters)
 make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
 make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
+make_marginal_hist(out_dir, grid_a, grid_b, "kappa", "kappa")
 
 ################################################################################
 # Estimators
@@ -88,14 +90,10 @@ fig_rwty_data <- grid_e %>%
     select(-c(c, tau, lag)) %>%
     group_by(L, root_time, lambda, mu, beta, run_length, sample_interval)
 fig_rwty <- fig_rwty_data %>%
-    group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
-               labs(# title = sprintf("L = %d, lambda = %g, lag = %g", .y$L,
-                    #                .y$lambda, .y$lag),
-                    # subtitle
-                    title = sprintf("window size / %d = %d",
+    group_map(~makeplot.asdsf(.x$rwty, 0, win_size(.y), 0.1)$asdsf.plot +
+               labs(title = sprintf("window size / %d = %d",
                                     .y$sample_interval, win_size(.y)),
                     x = sprintf("iteration / %d", .y$sample_interval)))
-
 gridExtra::grid.arrange(grobs = fig_rwty,
                         ncol = n_distinct(fig_rwty_data$lambda),
                         nrow = n_distinct(fig_rwty_data$L)) %>%
