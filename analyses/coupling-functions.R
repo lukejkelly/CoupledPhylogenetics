@@ -128,7 +128,8 @@ get_tau_ <- function(z, lag_offset) {
 }
 
 # Making coupling time figures
-get_coupling_times <- function(out_dir, grid_a) {
+get_coupling_times_ <- function(out_dir, grid_a) {
+    # estimate coupling times from output
     tau <- rep(NA_integer_, nrow(grid_a))
     for (i in seq_along(tau)) {
         svMisc::progress(i, length(tau))
@@ -147,7 +148,23 @@ get_coupling_times <- function(out_dir, grid_a) {
         tau_l <- get_tau(x$integrated_llkd, y$integrated_llkd, lag_offset)
         tau_r <- get_tau(x$root_time, y$root_time, lag_offset)
         tau_t <- get_tau_(z != 0, lag_offset)
-        tau[i] <- max(c(tau_p, tau_l, tau_r, tau_t))
+        tau_b <- get_tau(x$beta, y$beta, lag_offset)
+        tau_c <- get_tau(x$ncat, y$ncat, lag_offset)
+        tau[i] <- max(c(tau_p, tau_l, tau_r, tau_t, tau_b, tau_c))
+    }
+    message("coupling times computed")
+    return(tau)
+}
+
+get_coupling_times <- function(out_dir, grid_a) {
+    # get coupling times written by TraitLab
+    tau <- rep(NA_integer_, nrow(grid_a))
+    for (i in seq_along(tau)) {
+        svMisc::progress(i, length(tau))
+        grid_a_i <- grid_a[i, ]
+        file_name <- make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
+                                     grid_a_i$c, "_x", "tau")
+        tau[i] <- scan(file_name)
     }
     message("coupling times computed")
     return(tau)
@@ -187,20 +204,18 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
     tv_data$tv <- tv_bound_estimator(tv_data$tau,
                                      tv_data$lag / tv_data$sample_interval,
                                      tv_data$iter)
-
     fig_tv_data <- tv_data %>%
         select(-tau) %>%
         nest(s = c(c, tv)) %>%
         mutate(tv = map_dbl(s, ~mean(.$tv)))
-
     fig_tv <- fig_tv_data %>%
         ggplot(aes(x = iter, y = tv, colour = as.factor(lag))) +
-        geom_line(size = 1.5, alpha = 0.75) +
+        geom_line(size = 1, alpha = 0.75) +
         labs(title = "TV upper bound",
              subtitle = sprintf("minimum %.02e iterations, replications = %d",
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("iteration / %d", grid_a$sample_interval[1]),
-             y = "d_tv",
+             y = latex2exp::TeX("$ d_{\\mathrm{tv}} $ upper bound"),
              colour = "lag")
      for (scales in c("free", "fixed")) {
          fig_p <- fig_tv +
@@ -215,7 +230,6 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
 }
 
 make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
-
     w1_data <- expand_grid(grid_a, iter = iters, w1_root = NA_real_,
                            w1_clade = NA_real_, w1_tree = NA_real_)  %>%
         nest(s = c(iter, w1_root, w1_clade, w1_tree))

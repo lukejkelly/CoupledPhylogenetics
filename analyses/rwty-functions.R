@@ -31,13 +31,15 @@ get_rwty_trees <- function(out_dir, grid_i) {
 get_rwty_pars <- function(out_dir, grid_i) {
     pars <- get_pars_(out_dir, grid_i, grid_i$lag, grid_i$c, "_x") %>%
         select(-c(rho, log_likelihood)) %>%
+        janitor::remove_constant() %>%
         slice(ind0(0, grid_i$run_length / grid_i$sample_interval)) %>%
         as.data.frame()
     return(pars)
 }
 
-win_size <- function(y, n_win = 5) {
-    ws <- floor((y$run_length / y$sample_interval) / n_win)
+win_size <- function(y, n_win = 10) {
+    n_steps <- y$run_length / y$sample_interval
+    ws <- floor(n_steps / n_win)
     return(ws)
 }
 x_breaks <- function(y, n_win = 5) {
