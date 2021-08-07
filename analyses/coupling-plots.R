@@ -90,10 +90,10 @@ fig_rwty_data <- grid_e %>%
     select(-c(c, tau, lag)) %>%
     group_by(L, root_time, lambda, mu, beta, run_length, sample_interval)
 fig_rwty <- fig_rwty_data %>%
-    group_map(~makeplot.asdsf(.x$rwty, 0, win_size(.y), 0.1)$asdsf.plot +
-               labs(title = sprintf("window size / %d = %d",
-                                    .y$sample_interval, win_size(.y)),
-                    x = sprintf("iteration / %d", .y$sample_interval)))
+    group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
+              labs(title = sprintf("window size = %d samples", win_size(.y)),
+                   x = sprintf("iteration / %d", .y$sample_interval),
+                   y = "ASDSF"))
 gridExtra::grid.arrange(grobs = fig_rwty,
                         ncol = n_distinct(fig_rwty_data$lambda),
                         nrow = n_distinct(fig_rwty_data$L)) %>%

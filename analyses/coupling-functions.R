@@ -215,7 +215,7 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
              subtitle = sprintf("minimum %.02e iterations, replications = %d",
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("iteration / %d", grid_a$sample_interval[1]),
-             y = latex2exp::TeX("$ d_{\\mathrm{tv}} $ upper bound"),
+             y = "TV upper bound"),
              colour = "lag")
      for (scales in c("free", "fixed")) {
          fig_p <- fig_tv +
@@ -308,8 +308,13 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
 
 # Make marginal histograms
 get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
-
-    out <- bind_rows(grid_a, tibble(grid_b, lag = NA, c = NA)) %>%
+    if (all(grid_b$run_length == 0)) {
+        out_r <- grid_a
+    } else {
+        out_r <- bind_rows(grid_a, tibble(grid_b(grid_b$run_length > 0),
+                                          lag = NA, c = NA))
+    }
+    out <- out_r %>%
         nest(x = -everything())
     for (i in seq_len(nrow(out))) {
         svMisc::progress(i, nrow(out))
@@ -322,7 +327,7 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
             out$x[[i]] <- x[ind0(k0, m0)]
         } else {
             x <- get_pars_(out_dir, out_i, out_i$lag, out_i$c, "_x")[[par_name]]
-            out$x[[i]] <- x[ind0(k, m)]
+            out$x[[i]] <- x[ind0(k[i], m[i])]
         }
     }
     message(sprintf("%s marginal data read", par_name))
@@ -333,22 +338,36 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
 make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
                                k = NULL, m = NULL) {
     if (is.null(m)) {
-        m <- floor(grid_a$run_length[1] / grid_a$sample_interval[1])
+        if (all(grid_a$run_length > 0)) {
+            m <- floor(grid_a$run_length / grid_a$sample_interval)
+        } else {
+            m <- floor(grid_a$lag / grid_a$sample_interval)
+        }
     }
     if (is.null(k)) {
-        k <- floor(m / 10)
+        k <- floor(m / 5)
     }
     out <- get_marginal_data(out_dir, grid_a, grid_b, par_name, k, m)
     fig_data <- out %>%
         mutate(type = ifelse(is.na(c), "ground truth",
                              paste("coupled lag", lag)))
-    fig <- fig_data %>%
-        ggplot(aes(x = x, colour = as.factor(type)), alpha = 0.5, fill = NA) +
-        geom_density(aes()) +
+    if (all(out$x %% 1 == 0)) {
+        fig <- fig_data %>%
+            ggplot(aes(x = x, colour = as.factor(type), fill = as.factor(type)),
+                       alpha = 0.5) +
+            geom_histogram(aes(), position = "dodge")
+    } else {
+        fig <- fig_data %>%
+            ggplot(aes(x = x, colour = as.factor(type)), fill = NULL,
+                   alpha = 0.5) +
+            geom_density(aes())
+    }
+    fig <- fig +
         labs(title = sprintf("Marginal distribution of %s", par_name),
              subtitle = sprintf("x-chain samples %.02e to %.02e in %d coupled chains\nground truth chain 10x-longer",
                                 k, m, n_distinct(grid_a$c)),
              colour = NULL,
+             fill = NULL,
              x = par_label)
     for (scales in c("free", "fixed")) {
         fig_p <- fig +
