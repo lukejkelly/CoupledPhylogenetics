@@ -1,4 +1,4 @@
-\documentclass[class = article,border = 0pt]{standalone}
+\documentclass[class = article,border = 5pt]{standalone}
 
 \usepackage[usenames,dvipsnames]{xcolor}
 
@@ -15,119 +15,100 @@
 
 \begin{document}
 
-\definecolor{myblue}{rgb}{0.25, 0.75, 1.00}
-\definecolor{mygreen}{rgb}{0.75, 1.00, 0.00}
-\definecolor{myred}{rgb}{1.00, 0.50, 0.50}
-
 \begin{tikzpicture}
 
-% Sans-serif text.
+% Sans-serif text
 \sffamily
 
-% Set node and arrow styles for sets.
-\tikzset{Ht/.style={font = \small, color = myred}}
-\tikzset{HtA/.style={color = myred, thick, ->}}
-\tikzset{Pat/.style={font = \small, color = Maroon}}
+% Set node and arrow styles for sets
+\tikzset{Ht/.style={color = WildStrawberry}}
+\tikzset{HtA/.style={color = WildStrawberry, thick, ->}}
+
+% Tree node styles
+\tikzset{nS/.style={draw, shape = circle, inner sep = 1pt, minimum width = 16pt}}
+\tikzset{inS/.style={nS, fill = white}}
+\tikzset{lnS/.style={nS, fill = black, text = white}}
 
 % Tree nodes
-\node (n5) [draw, shape = circle, fill = mygreen, inner sep = 2.5pt] at ( 4, 2) {5};
-\node (n4) [draw, shape = circle, fill = mygreen, inner sep = 2.5pt] at ( 0, 2) {4};
-\node (n3) [draw, shape = circle, fill = mygreen, inner sep = 2.5pt] at (-4, 2) {3};
+\node (n1) [lnS] at (-4,2) {1};
+\node (n2) [lnS] at (0, 2) {2};
+\node (n3) [lnS] at (4, 2) {3};
 
-\path let \p1 = (n4), \p2 = (n5) in node (n2) [draw, shape = circle, fill = myblue, inner sep = 2.5pt] at ($ (0.5*\x1 + 0.5*\x2, 4) $) {2};
-\path let \p1 = (n2), \p2 = (n3) in node (n1) [draw, shape = circle, fill = myblue, inner sep = 2.5pt] at ($ (0.5*\x1 + 0.5*\x2, 6) $) {1};
+\path let \p1 = (n2), \p2 = (n3) in node (n4) [inS] at ($ (0.5*\x1 + 0.5*\x2, 4) $) {4};
+\path let \p1 = (n4), \p2 = (n1) in node (n5) [inS] at ($ (0.5*\x1 + 0.5*\x2, 6) $) {5};
 
-\node (n0) at ($ (n1) + (0, 1.5) $) {};
+\node (n0) at ($ (n5) + (0, 1.5) $) {};
 
+% Placeholder nodes
+\path let \p1 = (n5), \p2 = (n4) in node (p54) at (\x2, \y1) {};
+\path let \p1 = (n5), \p2 = (n1) in node (p51) at (\x2, \y1) {};
 
-% Placeholder nodes.
-\path let \p1 = (n1), \p2 = (n2) in node (p12) at (\x2, \y1) {};
-\path let \p1 = (n1), \p2 = (n3) in node (p13) at (\x2, \y1) {};
-
-\path let \p1 = (n2), \p2 = (n4) in node (p24) at (\x2, \y1) {};
-\path let \p1 = (n2), \p2 = (n5) in node (p25) at (\x2, \y1) {};
-
+\path let \p1 = (n4), \p2 = (n2) in node (p42) at (\x2, \y1) {};
+\path let \p1 = (n4), \p2 = (n3) in node (p43) at (\x2, \y1) {};
 
 % Edges
-\draw[black] (n0.center) -- (n1);
+\draw[black] (n0.center) -- (n5);
 
-\draw[black] (n1) -- (p12.center) -- (n2);
-\draw[black] (n1) -- (p13.center) -- (n3);
+\draw[black] (n5) -| (n4);
+\draw[black] (n5) -| (n1);
 
-\draw[black] (n2) -- (p25.center) -- (n5);
-\draw[black] (n2) -- (p24.center) -- (n4);
+\draw[black] (n4) -|(n3);
+\draw[black] (n4) -| (n2);
 
 % Set nodes
-\node (h1t) [Ht, anchor = west] at ($ (n0) + (0.5, 0) $) {$ H_1(t) $};
+\node (h123t) [Ht] at ($ (n0) + (1, 0) $) {$ H_{123}(t) $};
+\node (h123t5m) [Ht] at ($ (n5) + (1, 0.5) $) {$ H_{123}(t_{1,23}^-) $};
 
-\node (h2t1m) [Ht] at ($ (p12) + (0.5, 0.5) $) {$ H_1(t_1^-) $};
-\node (h2t1) [Ht] at ($ (p12) + (0.5, -0.5) $) {$ H_2(t_1) $};
+\node (h1t5) [Ht] at ($ (p51) + (1, -0.5) $) {$ H_1(t_{1,23}) $};
+\node (h1t1) [Ht] at ($ (n1) + (1, 0) $) {$ H_1(t_1) $};
 
-\node (h3t1m) [Ht] at ($ (p13) + (0.5, 0.5) $) {$ H_1(t_1^-) $};
-\node (h3t1) [Ht] at ($ (p13) + (0.5, -0.5) $) {$ H_3(t_1) $};
-\node (h30) [Ht, anchor = west] at ($ (n3) + (0.5, 0) $) {$ H_3(t_3) $};
+\node (h23t5) [Ht] at ($ (p54) + (1, -0.5) $) {$ H_{23}(t_{1,23}) $};
+\node (h23t4m) [Ht] at ($ (n4) + (1, 0.5) $) {$ H_{23}(t_{2,3}^-) $};
 
-\node (h4t2m) [Ht] at ($ (p24) + (0.5, 0.5) $) {$ H_2(t_2^-) $};
-\node (h4t2) [Ht] at ($ (p24) + (0.5, -0.5) $) {$ H_4(t_2) $};
-\node (h40) [Ht, anchor = west] at ($ (n4) + (0.5, 0) $) {$ H_4(t_4) $};
+\node (h2t4) [Ht] at ($ (p42) + (1, -0.5) $) {$ H_2(t_{2,3}) $};
+\node (h2t2) [Ht] at ($ (n2) + (1, 0) $) {$ H_2(t_2) $};
 
-\node (h5t2m) [Ht] at ($ (p25) + (0.5, 0.5) $) {$ H_2(t_2^-) $};
-\node (h5t2) [Ht] at ($ (p25) + (0.5, -0.5) $) {$ H_5(t_2) $};
-\node (h50) [Ht, anchor = west] at ($ (n5) + (0.5, 0) $) {$ H_5(t_5) $};
+\node (h3t4) [Ht] at ($ (p43) + (1, -0.5) $) {$ H_3(t_{2,3}) $};
+\node (h3t3) [Ht] at ($ (n3) + (1, 0) $) {$ H_3(t_3) $};
 
+% Set arrows
+\draw[HtA] (h123t) -- (h123t5m);
 
-% Set arrows.
-\draw[HtA] (h1t.west) |- (h2t1m);
-\draw[HtA] (h1t.west) |- (h3t1m);
+\draw[HtA] (h123t5m) -| (h1t5);
+\draw[HtA] (h123t5m) -| (h23t5);
 
-\draw[HtA] (h2t1m) -- (h2t1);
+\draw[HtA] (h23t5) -- (h23t4m);
+\draw[HtA] (h23t4m) -| (h2t4);
+\draw[HtA] (h23t4m) -| (h3t4);
 
-\draw[HtA] (h2t1) |- (h4t2m);
-\draw[HtA] (h2t1) |- (h5t2m);
+\draw[HtA] (h1t5) -- (h1t1);
+\draw[HtA] (h2t4) -- (h2t2);
+\draw[HtA] (h3t4) -- (h3t3);
 
-\draw[HtA] (h3t1m) -- (h3t1);
-
-\draw[HtA] (h3t1) -- (h30.west);
-
-\draw[HtA] (h4t2m) -- (h4t2);
-\draw[HtA] (h4t2) -- (h40.west);
-
-\draw[HtA] (h5t2m) -- (h5t2);
-\draw[HtA] (h5t2) -- (h50.west);
-
-
-% Background image.
+% Background image
 \begin{pgfonlayer}{background}
 
-	% Time nodes.
-	\path let \p1 = ($ (n3) + (-1,   0) $), \p2 = (n2) in node (t2a) at (\x1, \y2) {$ t_2 $};
-	\path let \p1 = ($ (n5) + ( 1.5, 0) $), \p2 = (n2) in node (t2b) at (\x1, \y2) {$ t_2 $};
+	% Time nodes
+    \path let \p1 = ($ (n1) + (-1, 0) $), \p2 = (n4) in node (t2a) at (\x1, \y2) {$ t_5 $};
+	\path let \p1 = ($ (h3t3) + (1, 0) $), \p2 = (n4) in node (t2b) [color = WildStrawberry] at (\x1, \y2) {$ t_{2,3} $};
 
-	\path let \p1 = (t2a), \p2 = (n1) in node (t1a) at (\x1, \y2) {$ t_1 $};
-	\path let \p1 = (t2b), \p2 = (n1) in node (t1b) at (\x1, \y2) {$ t_1 $};
+	\path let \p1 = (t2a), \p2 = (n5) in node (t5a) at (\x1, \y2) {$ t_4 $};
+	\path let \p1 = (t2b), \p2 = (n5) in node (t5b) [color = WildStrawberry] at (\x1, \y2) {$ t_{1,23} $};
 
-	% Time lines.
-	\draw[black!50, dashed] (t1a) -- (t1b);
+	% Time lines
+	\draw[black!50, dashed] (t5a) -- (t5b);
 	\draw[black!50, dashed] (t2a) -- (t2b);
-
-	% % Node orderings.
-	% \path let \p1 = (t1a), \p2 = (n0)  in node [font=\small, anchor=west] at ($ (1.25*\x1, 0.5*\y1 + 0.5*\y2) $) {$ \mathbf{k}^{(t)} = (1) $};
-	% \path let \p1 = (t1a), \p2 = (t2a) in node [font=\small, anchor=west] at ($ (1.25*\x1, 0.5*\y1 + 0.5*\y2) $) {$ \mathbf{k}^{(t)} = (3, 2) $};
-	% \path let \p1 = (t2a), \p2 = (n3)  in node [font=\small, anchor=west] at ($ (1.25*\x1, 0.5*\y1 + 0.5*\y2) $) {$ \mathbf{k}^{(t)} = (3, 4, 5) $};
-
 
 \end{pgfonlayer}
 
-% Event labels.
-\path let \p1 = (t1b), \p2 = (n0), \p3 = (n5) in node (il) [draw, shape = circle, fill = myblue] at ($ (\x1, 0.8*\y2 + 0.2*\y3) + (1, 0) $) {};
-\path let \p1 = (t1b), \p2 = (n0), \p3 = (n5) in node (ll) [draw, shape = circle, fill = mygreen] at ($ (\x1, 0.6*\y2 + 0.4*\y3) + (1, 0) $) {};
-\path let \p1 = (t1b), \p2 = (n0), \p3 = (n5) in node (hl) [Ht] at ($ (\x1, 0.4*\y2 + 0.6*\y3) + (1, 0) $) {$ H_i(t) $};
-% \path let \p1 = (t1b), \p2 = (n0), \p3 = (n5) in node (kl) [font=\small] at ($ (\x1, 0.2*\y2 + 0.8*\y3) + (1, 0) $) {$ \mathbf{k}^{(t)} $};
+% Event labels
+\path let \p1 = (t5b), \p2 = (n0), \p3 = (n3) in node (hl) [Ht] at ($ (\x1, 0.75*\y2 + 0.25*\y3) + (1.5, 0) $) {$ H_i(t) $};
+\path let \p1 = (t5b), \p2 = (n0), \p3 = (n3) in node (il) [inS, minimum size = 10pt] at ($ (\x1, 0.5*\y2 + 0.5*\y3) + (1.5, 0) $) {};
+\path let \p1 = (t5b), \p2 = (n0), \p3 = (n3) in node (ll) [lnS, minimum size = 10pt] at ($ (\x1, 0.25*\y2 + 0.75*\y3) + (1.5, 0) $) {};
 
-\node [font = \small, align = left, anchor = west] at ($ (il) + (0.35, 0) $) {Internal node /\\ speciation event};
-\node [font = \small, align = left, anchor = west] at ($ (ll) + (0.35, 0) $) {Leaf node /\\ observed taxon};
-\node [font = \small, align = left, anchor = west] at ($ (hl) + (0.35, 0) $) {Species $ i $ at \\ time $ t $};
-% \node [font = \small, align = left, anchor = west] at ($ (kl) + (0.35, 0) $) {Branch labels at \\ time $ t $};
+\node [align = left, anchor = west] at ($ (hl) + (0.5, 0) $) {Species $ i $ at time $ t $};
+\node [align = left, anchor = west] at ($ (il) + (0.5, 0) $) {Internal node \\ Unobserved speciation};
+\node [align = left, anchor = west] at ($ (ll) + (0.5, 0) $) {Leaf node \\ Observed taxon};
 
 \end{tikzpicture}
 

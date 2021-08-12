@@ -1,4 +1,4 @@
-\documentclass[class = article,border = 0pt]{standalone}
+\documentclass[class = article,border = 5pt]{standalone}
 
 \usepackage[usenames,dvipsnames]{xcolor}
 
@@ -30,38 +30,42 @@
 
     % Labelled nodes
     \tikzset{Si/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=YellowGreen}}
-    \tikzset{Spi/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=NavyBlue}}
+    \tikzset{Sp/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=NavyBlue}}
     \tikzset{Sj/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=BlueGreen}}
-    \tikzset{Spj/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=RedOrange}}
+    \tikzset{Sq/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=RedOrange}}
 
     % Labelled branches trees
     \tikzset{Bi/.style={thick, draw=YellowGreen}}
-    \tikzset{Bpi/.style={thick, draw=NavyBlue}}
-    \tikzset{Bsi/.style={thick, draw=Rhodamine}}
+    \tikzset{Bp/.style={thick, draw=NavyBlue}}
+    % \tikzset{Bsi/.style={thick, draw=Rhodamine}}
     \tikzset{Bj/.style={thick, draw=BlueGreen}}
-    \tikzset{Bpj/.style={thick, draw=RedOrange}}
+    \tikzset{Bq/.style={thick, draw=RedOrange}}
 
     % Tree nodes
-    \node (a) at ( -1.5, 4.25) {};
-    	\node (pi) [Spi] at ( -1.5, 3.5) {$ p $};
-    		\node (i) [Si] at (-3, 0) {$ i $ };
-    		\node (pj) [Spj] at ( 0, 3) {$ q $};
-    			\node (oj) at ( 2, 1.5) {};
-    				\node (oj1) at ( 1, 0) {};
-    				\node (oj2) at ( 3, 0) {};
+    \node (a) at (-1.75, 4.25) {};
+    	\node (p) [Sp] at (-1.75, 3.5) {$ p $};
+    		\node (i) [Si] at (-4, 1) {$ i $ };
+                \node (oi1) at (-5, 0) {};
+                \node (oi2) at  (-3, 0) {};
+    		\node (q) [Sq] at (0.5, 3) {$ q $};
+    			\node (oj) at (2, 1.5) {};
+    				\node (oj1) at (1, 0) {};
+    				\node (oj2) at (3, 0) {};
     			\node (j) [Sj] at (-1, 0) {$ j $};
 
     % Background image
     \begin{pgfonlayer}{background}
 
     	% Species tree
-    	\path[Bpi] (a.center) -- (pi);
-    		\path[Bi] (pi) -| (i);
-    		\path[Bpj] (pi) -| (pj);
-    			\path[pS] (pj) -| (oj.center);
+    	\path[Bp] (a.center) -- (p);
+    		\path[Bi] (p) -| (i);
+                \path[pS] (i) -| (oi1.center);
+                \path[pS] (i) -| (oi2.center);
+    		\path[Bq] (p) -| (q);
+    			\path[pS] (q) -| (oj.center);
     				\path[pS] (oj.center) -| (oj1.center);
     				\path[pS] (oj.center) -| (oj2.center);
-    			\path[Bj] (pj) -| (j);
+    			\path[Bj] (q) -| (j);
 
     \end{pgfonlayer}
 
@@ -70,8 +74,8 @@
 \begin{tikzpicture}
 
     \node [white] at (0, 0) {~};
-    \node [white] at (0, 5) {~};
-    \draw[red, thick, <->, >= triangle 60] (-1, 2.5) -- (1, 2.5);
+    \node [white] at (0, 4.25) {~};
+    \draw[red, thick, ->, >= triangle 60] (-1, 2.5) -- (1, 2.5);
 
 \end{tikzpicture}
 
@@ -88,36 +92,40 @@
 
     % Labelled nodes
     \tikzset{Si/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=YellowGreen}}
-    \tikzset{Spi/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=NavyBlue}}
+    \tikzset{Sp/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=NavyBlue}}
     \tikzset{Sj/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=BlueGreen}}
-    \tikzset{Spj/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=RedOrange}}
+    \tikzset{Sq/.style={thick, circle, inner sep = 0mm, minimum size = 0.75cm, font = \small, draw=RedOrange}}
 
     % Labelled branches trees
     \tikzset{Bi/.style={thick, draw=YellowGreen}}
-    \tikzset{Bpi/.style={thick, draw=NavyBlue}}
-    \tikzset{Bsi/.style={thick, draw=Rhodamine}}
+    \tikzset{Bp/.style={thick, draw=NavyBlue}}
+    % \tikzset{Bsi/.style={thick, draw=Rhodamine}}
     \tikzset{Bj/.style={thick, draw=BlueGreen}}
-    \tikzset{Bpj/.style={thick, draw=RedOrange}}
+    \tikzset{Bq/.style={thick, draw=RedOrange}}
 
     % Tree nodes
-    \node (a) at ( 0, 4.25) {};
-    	\node (pj) [Spj] at ( 0, 3) {$ q $};
-    		\node (pi) [Spi] at (-2, 2) {$ p $};
-    			\node (i) [Si] at (-3, 0) {$ i $ };
+    \node (a) at (0, 4.25) {};
+    	\node (q) [Sq] at (0, 3) {$ q $};
+    		\node (p) [Sp] at (-2.5, 2) {$ p $};
+    			\node (i) [Si] at (-4, 1) {$ i $ };
+                    \node (oi1) at (-5, 0) {};
+                    \node (oi2) at  (-3, 0) {};
     			\node (j) [Sj] at (-1, 0) {$ j $};
-    		\node (oj) at ( 2, 1.5) {};
-    			\node (oj1) at ( 1, 0) {};
-    			\node (oj2) at ( 3, 0) {};
+    		\node (oj) at (2, 1.5) {};
+    			\node (oj1) at (1, 0) {};
+    			\node (oj2) at (3, 0) {};
 
     % Background image
     \begin{pgfonlayer}{background}
 
     	% Species tree
-    	\path[Bpj] (a.center) -- (pj);
-    		\path[Bpi] (pj) -| (pi);
-    			\path[Bi] (pi) -| (i);
-    			\path[Bj] (pi) -| (j);
-    		\path[pS] (pj) -| (oj.center);
+    	\path[Bq] (a.center) -- (q);
+    		\path[Bp] (q) -| (p);
+    			\path[Bi] (p) -| (i);
+                    \path[pS] (i) -| (oi1.center);
+                    \path[pS] (i) -| (oi2.center);
+    			\path[Bj] (p) -| (j);
+    		\path[pS] (q) -| (oj.center);
     			\path[pS] (oj.center) -| (oj1.center);
     			\path[pS] (oj.center) -| (oj2.center);
 
