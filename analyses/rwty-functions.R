@@ -37,12 +37,12 @@ get_rwty_pars <- function(out_dir, grid_i) {
     return(pars)
 }
 
-win_size <- function(y, n_win = 5) {
+win_size <- function(y, n_win = 10) {
     n_steps <- y$run_length / y$sample_interval
     ws <- floor(n_steps / n_win)
     return(ws)
 }
-x_breaks <- function(y, n_win = 5) {
+x_breaks <- function(y, n_win = 10) {
     xb <- seq.int(1, y$run_length / y$sample_interval, win_size(y, n_win)) %>%
         as.character()
     return(xb)

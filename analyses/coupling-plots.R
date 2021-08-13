@@ -56,7 +56,7 @@ grid_a$k <- get_estimator_k(grid_a)
 
 ################################################################################
 # Integral probablity metrics
-iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
+# iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
 iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
 make_tv_figure(out_dir, grid_a, iters)
 # make_w1_figure(out_dir, grid_a, grid_d, iters)
@@ -66,7 +66,7 @@ make_tv_figure(out_dir, grid_a, iters)
 make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
 make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
-make_marginal_hist(out_dir, grid_a, grid_b, "kappa", "kappa")
+# make_marginal_hist(out_dir, grid_a, grid_b, "kappa", "kappa")
 
 ################################################################################
 # Estimators
@@ -84,7 +84,15 @@ trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
 
 ################################################################################
 # Are We There Yet?
-grid_e <- get_rwty_output(out_dir, grid_a)
+
+if (all(grid_a$run_length) > 0) {
+    grid_e <- get_rwty_output(out_dir, grid_a)
+} else {
+    grid_e <- grid_a %>%
+        mutate(run_length = ifelse(run_length == 0, lag, run_length)) %>%
+        filter(lag == max(lag)) %>%
+        get_rwty_output(out_dir, .)
+}
 
 fig_rwty_data <- grid_e %>%
     select(-c(c, tau, lag)) %>%
