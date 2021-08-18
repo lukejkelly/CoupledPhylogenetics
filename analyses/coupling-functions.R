@@ -50,7 +50,7 @@ read_nexus_file_ <- function(target_dir, grid) {
 
 # Reading tree samples
 get_trees <- function(tree_file) {
-    trees <- ape::read.tree(tree_file, skip = 7, comment.char = "#")
+    trees <- ape::read.tree(tree_file, skip = 7, comment.char = "#", keep.multi = TRUE)
     return(trees)
 }
 
@@ -173,7 +173,7 @@ get_coupling_times <- function(out_dir, grid_a) {
 make_tau_ecdf <- function(grid_a) {
     fig_tau <- grid_a %>%
         ggplot(aes(
-            x = tau,
+            x = tau - lag / sample_interval,
             colour = factor(sprintf("%.4g", lag),
                             levels = sprintf("%.4g", unique(sort(lag))))
         )) +
@@ -181,18 +181,18 @@ make_tau_ecdf <- function(grid_a) {
         labs(title = "ECDF of coupling time tau",
              subtitle = sprintf("minimum %.02e iterations, replications = %d",
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
-             x = sprintf("tau / %d", grid_a$sample_interval[1]),
+             x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
              y = "ECDF", # latex2exp::TeX(r'($\hat{F}(\tau)$)'),
              colour = "lag")
-    if (n_distinct(grid_a$L) > 1 || n_distinct(grid_a$lambda) > 1) {
+    if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free", "fixed")) {
             fig_p <- fig_tau +
-                facet_wrap(~ L + lambda, ncol = n_distinct(grid_a$lambda),
-                           scales = scales, labeller = "label_both")
+                facet_wrap(~ L, ncol = n_distinct(grid_a$L), scales = scales,
+                           labeller = "label_both")
             ggsave(sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
                    fig_p,
-                   width = 3 * n_distinct(grid_a$lambda) + 2,
-                   height = 3 * n_distinct(grid_a$L))
+                   width = 3 * n_distinct(grid_a$L) + 2,
+                   height = 3)
         }
     } else {
         ggsave(sprintf(fig_template, "tau"), fig_tau, width = 5, height = 3)
@@ -230,16 +230,16 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
              x = sprintf("iteration / %d", grid_a$sample_interval[1]),
              y = "TV upper bound",
              colour = "lag")
-     if (n_distinct(grid_a$L) > 1 || n_distinct(grid_a$lambda) > 1) {
+     if (n_distinct(grid_a$L) > 1) {
          for (scales in c("free", "fixed")) {
              fig_p <- fig_tv +
                  # scale_y_continuous(trans = "log1p") +
-                 facet_wrap(~ L + lambda, ncol = n_lambda, scales = scales,
+                 facet_wrap(~ L, ncol = n_L, scales = scales,
                             labeller = "label_both")
              ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
                     fig_p,
-                    width = 3 * n_distinct(grid_a$lambda) + 2,
-                    height = 3 * n_distinct(grid_a$L))
+                    width = 3 * n_distinct(grid_a$L) + 2,
+                    height = 3)
          }
      } else {
          ggsave(sprintf(fig_template, "tv"), fig_tv, width = 5, height = 3)

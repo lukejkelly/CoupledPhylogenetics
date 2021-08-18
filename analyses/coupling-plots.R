@@ -3,7 +3,7 @@ library("ggplot2")
 library("dplyr")
 library("purrr")
 library("fs")
-library("rwty")
+library("rwty", lib.loc = "~/Workspace/Rlibs/") # library("rwty")
 
 # Run from current experiment folder at same level in hierarchy as analyses/
 source_analysis_file <- function(s) source(file.path("..", "analyses", s))
@@ -51,13 +51,14 @@ grid_a$tau <- get_coupling_times(out_dir, grid_a)
 make_tau_ecdf(grid_a)
 
 ################################################################################
-# Sequence start and endpoints
-grid_a$k <- get_estimator_k(grid_a)
+# # Sequence start and endpoints
+# grid_a$k <- get_estimator_k(grid_a)
 
 ################################################################################
 # Integral probablity metrics
 # iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
-iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
+# iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
+iters <- seq.int(0, max(grid_a$lag / grid_a$sample_interval))
 make_tv_figure(out_dir, grid_a, iters)
 # make_w1_figure(out_dir, grid_a, grid_d, iters)
 
@@ -66,7 +67,8 @@ make_tv_figure(out_dir, grid_a, iters)
 make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
 make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
-# make_marginal_hist(out_dir, grid_a, grid_b, "kappa", "kappa")
+make_marginal_hist(out_dir, grid_a, grid_b, "mu", "mu")
+make_marginal_hist(out_dir, grid_a, grid_b, "beta", "beta")
 
 ################################################################################
 # Estimators
@@ -85,27 +87,33 @@ trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
 ################################################################################
 # Are We There Yet?
 
-if (all(grid_a$run_length) > 0) {
+if (all(grid_a$run_length > 0)) {
     grid_e <- get_rwty_output(out_dir, grid_a)
 } else {
     grid_e <- grid_a %>%
-        mutate(run_length = ifelse(run_length == 0, lag, run_length)) %>%
         filter(lag == max(lag)) %>%
+        mutate(run_length = lag) %>%
         get_rwty_output(out_dir, .)
 }
 
 fig_rwty_data <- grid_e %>%
     select(-c(c, tau, lag)) %>%
     group_by(L, root_time, lambda, mu, beta, run_length, sample_interval)
+burnin <- 0;
+n_win <- 10
+window.size <- win_size(fig_rwty_data[1, ], n_win)
 fig_rwty <- fig_rwty_data %>%
-    group_map(~makeplot.asdsf(.x$rwty, 1, win_size(.y), 0.1)$asdsf.plot +
-              labs(title = sprintf("window size = %d samples", win_size(.y)),
-                   x = sprintf("iteration / %d", .y$sample_interval),
+    group_map(~makeplot.asdsf(.x$rwty, burnin, window.size, 0.1)$asdsf.plot +
+              labs(title = sprintf("window size = %d samples", window.size),
+                   x = sprintf("window start iteration / %d",
+                               .y$sample_interval),
                    y = "ASDSF"))
 gridExtra::grid.arrange(grobs = fig_rwty,
-                        ncol = n_distinct(fig_rwty_data$lambda),
-                        nrow = n_distinct(fig_rwty_data$L)) %>%
-    ggsave(sprintf(fig_template, "asdsf"),
+                        ncol = n_distinct(fig_rwty_data$L),
+                        nrow = 1) %>%
+    ggsave(sprintf(fig_template, "asdsf-rwty"),
            plot = .,
-           width = 3 * n_distinct(fig_rwty_data$lambda) + 2,
-           height = 3 * n_distinct(fig_rwty_data$L))
+           width = 3 * n_distinct(fig_rwty_data$L) + 2,
+           height = 3)
+
+my_asdsf_plot(grid_e, fig_rwty, chains, burnin, n_win, min.freq)
