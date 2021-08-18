@@ -9,7 +9,8 @@
 %\usepackage{color}
 
 \pgfdeclarelayer{background}
-\pgfsetlayers{background,main}
+\pgfdeclarelayer{middleground}
+\pgfsetlayers{background,middleground,main}
 
 \setlength{\parskip}{0pt}
 \setlength{\parindent}{0pt}
@@ -100,13 +101,15 @@
 \node (e4) [catS] at (7.75, 1.5) {};
 \node (e5) [catS] at (4.5, 1.5) {};
 
-
-% Trait edges
-\draw[tS] (e1) -- (i12);
-\draw[tS] (e3a) -| (i12) |- (i11);
-\draw[tS] (e3a) -- (e3b.center) -- (l1);
-\draw[tS] (e2a) -| (i10) |- (l3);
-\draw[tS] (e2b) -| (i11) |- (l5);
+\begin{pgfonlayer}{middleground}
+    % Trait edges
+    \draw[tS] (e1.center) -- (i12.center);
+    \draw[tS] (e3a.center) -| (i12.center) |- (i11.center);
+    \draw[tS] (e3a.center) -- (i10.center);
+    \draw[tS] (e3a.center) -- (e3b.center) -- (l1.center);
+    \draw[tS] (e2a.center) -| (i10.center) |- (l3.center);
+    \draw[tS] (e2b.center) -| (i11.center) |- (l5.center);
+\end{pgfonlayer}
 
 % True pattern
 \node (pt1) [align = center] at (11, 7) {1};
