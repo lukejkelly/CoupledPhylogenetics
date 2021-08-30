@@ -185,7 +185,7 @@ make_tau_ecdf <- function(grid_a) {
              y = "ECDF", # latex2exp::TeX(r'($\hat{F}(\tau)$)'),
              colour = "lag")
     if (n_distinct(grid_a$L) > 1) {
-        for (scales in c("free", "fixed")) {
+        for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
                 facet_wrap(~ L, ncol = n_distinct(grid_a$L), scales = scales,
                            labeller = "label_both")
