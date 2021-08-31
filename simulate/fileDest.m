@@ -4,7 +4,7 @@ function [d, e, f, g] = fileDest(L, root_time, lambda, mu, beta, lag)
     c = num2str(yyyymmdd(datetime));
     d = fullfile('..', c);
 
-    % Destination from TraitLabSDLT-coupled
+    % Destination from TraitLab
     e = fullfile('..', 'CoupledPhylogenetics', c);
 
     % For data sets
