@@ -19,13 +19,13 @@ grids <- make_grid("config.R")
 grid_a <- grids$grid_a
 grid_b <- grids$grid_b
 
-grid_d <- grid_b # grid_a %>% nest(s = c(lag, c)) %>% select(-s)
-# grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
-# grid_d$tr <- grid_d %>%
-#     select(L, root_time, lambda, mu, beta) %>%
-#     pmap(function(...) read_nexus_file(target_dir, ...))
-grid_d$cl <- NA
-grid_d$tr <- NA
+# grid_d <- grid_b # grid_a %>% nest(s = c(lag, c)) %>% select(-s)
+# # grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
+# # grid_d$tr <- grid_d %>%
+# #     select(L, root_time, lambda, mu, beta) %>%
+# #     pmap(function(...) read_nexus_file(target_dir, ...))
+# grid_d$cl <- NA
+# grid_d$tr <- NA
 
 # Target figure and output templates and directories
 fig_dir <- "figs"
@@ -51,10 +51,6 @@ grid_a$tau <- get_coupling_times(out_dir, grid_a)
 make_tau_ecdf(grid_a)
 
 ################################################################################
-# # Sequence start and endpoints
-# grid_a$k <- get_estimator_k(grid_a)
-
-################################################################################
 # Integral probablity metrics
 # iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
 # iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
@@ -71,18 +67,18 @@ make_marginal_hist(out_dir, grid_a, grid_b, "mu", "mu")
 make_marginal_hist(out_dir, grid_a, grid_b, "beta", "beta")
 
 ################################################################################
-# Estimators
-make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-# make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
-#                     "clade")
-make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "topology support",
-                    "topology")
-
-trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-# trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
-#                     "clade")
-trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
-                "topology")
+# # Estimators
+# make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
+# # make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
+# #                     "clade")
+# make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "topology support",
+#                     "topology")
+#
+# trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
+# # trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
+# #                     "clade")
+# trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
+#                 "topology")
 
 ################################################################################
 # Are We There Yet?
