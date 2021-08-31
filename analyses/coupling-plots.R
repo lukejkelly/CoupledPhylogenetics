@@ -56,7 +56,6 @@ make_tau_ecdf(grid_a)
 # iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
 iters <- seq.int(0, max(grid_a$lag / grid_a$sample_interval))
 make_tv_figure(out_dir, grid_a, iters)
-# make_w1_figure(out_dir, grid_a, grid_d, iters)
 
 ################################################################################
 # Marginal histograms

@@ -46,7 +46,7 @@ Some of the TraitLab settings are hard-coded into the template which is populate
 
 ## Run experiment
 
-### Singe local experimetn
+### Singe local experiment
 Execute `batchTraitLab` in Matlab, with first argument the relevant `.par` file.
 
 ## Run all experiments on cluster
