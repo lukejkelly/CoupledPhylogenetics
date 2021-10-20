@@ -28,10 +28,10 @@ grid_b <- grids$grid_b
 # grid_d$tr <- NA
 
 # Target figure and output templates and directories
+out_dir <- "output"
 fig_dir <- "figs"
 dir_create(fig_dir)
 fig_template <- sprintf("%s/%%s.pdf", fig_dir)
-out_dir <- "output"
 
 # Some useful constants
 n_L <- n_distinct(grid_a$L)
@@ -49,6 +49,7 @@ si_a <- grid_a$sample_interval[1]
 # Coupling times
 grid_a$tau <- get_coupling_times(out_dir, grid_a)
 make_tau_ecdf(grid_a)
+make_tau_eccdf(grid_a)
 
 ################################################################################
 # Integral probablity metrics
@@ -59,6 +60,7 @@ make_tv_figure(out_dir, grid_a, iters)
 
 ################################################################################
 # Marginal histograms
+make_marginal_hist(out_dir, grid_a, grid_b, "log_prior", "prior")
 make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
 make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
 make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
