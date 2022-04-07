@@ -215,9 +215,7 @@ make_tau_eccdf <- function(grid_a) {
              x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
              y = "1 - ECDF",
              colour = "lag") +
-         scale_y_continuous(trans = log_trans(),
-                            breaks = trans_breaks("log", function(x) exp(1)^x),
-                            labels = trans_format("log", math_format(e^.x)))
+         scale_y_log10()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
@@ -267,7 +265,6 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
      if (n_distinct(grid_a$L) > 1) {
          for (scales in c("free", "fixed")) {
              fig_p <- fig_tv +
-                 # scale_y_continuous(trans = "log1p") +
                  facet_wrap(~ L, ncol = n_L, scales = scales,
                             labeller = "label_both")
              ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
@@ -427,13 +424,12 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
     if (n_distinct(grid_a$L) > 1 || n_distinct(grid_a$lambda) > 1) {
         for (scales in c("free", "fixed")) {
             fig_p <- fig +
-            facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                       labeller = "label_both")
-            ggsave(sprintf(fig_template, sprintf("%s-hist_axes-%s", par_label,
-                                                 scales)),
+            facet_wrap(~ L, scales = scales, labeller = "label_both")
+            ggsave(sprintf(fig_template,
+                           sprintf("%s-hist_axes-%s", par_label, scales)),
                    fig_p,
-                   width = 3 * n_distinct(grid_a$lambda) + 2,
-                   height = 3 * n_distinct(grid_a$L))
+                   width = 3 * n_distinct(grid_a$L) + 2,
+                   height = 3)
         }
     } else {
         ggsave(sprintf(fig_template, sprintf("%s-hist", par_label)),

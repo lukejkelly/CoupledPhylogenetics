@@ -11,6 +11,7 @@ end
 
 dest_dir = fileDest();
 cellfun(@(x) mkdir(dest_dir, x), {'data', 'output', 'pars', 'log'});
+copyfile('paramConfig.m', dest_dir);
 
 % Tree parameter grids
 [grid_L, grid_root_time] = ndgrid(list_L, list_root_time);
