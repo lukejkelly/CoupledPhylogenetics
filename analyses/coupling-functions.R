@@ -175,8 +175,8 @@ make_tau_ecdf <- function(grid_a) {
     fig_tau <- grid_a %>%
         ggplot(aes(
             x = tau - lag / sample_interval,
-            colour = factor(sprintf("%.4g", lag),
-                            levels = sprintf("%.4g", unique(sort(lag))))
+            linetype = factor(sprintf("%.4g", lag),
+                              levels = sprintf("%.4g", unique(sort(lag))))
         )) +
         stat_ecdf(pad = FALSE, alpha = 0.75) +
         labs(title = "ECDF of coupling time tau",
@@ -184,7 +184,8 @@ make_tau_ecdf <- function(grid_a) {
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
              y = "ECDF",
-             colour = "lag")
+             linetype = "lag") +
+        theme_light()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
@@ -205,8 +206,8 @@ make_tau_eccdf <- function(grid_a) {
     fig_tau <- grid_a %>%
         ggplot(aes(
             x = tau - lag / sample_interval,
-            colour = factor(sprintf("%.4g", lag),
-                            levels = sprintf("%.4g", unique(sort(lag))))
+            linetype = factor(sprintf("%.4g", lag),
+                              levels = sprintf("%.4g", unique(sort(lag))))
         )) +
         geom_step(aes(y = 1 - ..y..), stat = "ecdf", alpha = 0.75) +
         labs(title = "EECDF of coupling time tau",
@@ -214,8 +215,9 @@ make_tau_eccdf <- function(grid_a) {
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
              y = "1 - ECDF",
-             colour = "lag") +
-         scale_y_log10()
+             linetype = "lag") +
+         scale_y_log10() +
+         theme_light()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
@@ -252,16 +254,18 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
         ggplot(aes(
             x = iter,
             y = tv,
-            colour = factor(sprintf("%.4g", lag),
-                            levels = sprintf("%.4g", unique(sort(lag))))
+            linetype = factor(sprintf("%.4g", lag),
+                              levels = sprintf("%.4g", unique(sort(lag))))
         )) +
-        geom_line(size = 1, alpha = 0.75) +
+        geom_line(alpha = 0.75) +
         labs(title = "TV upper bound",
              subtitle = sprintf("minimum %.02e iterations, replications = %d",
                                 grid_a$run_length[1], n_distinct(grid_a$c)),
              x = sprintf("iteration / %d", grid_a$sample_interval[1]),
              y = "TV upper bound",
-             colour = "lag")
+             linetype = "lag"
+         ) +
+         theme_light()
      if (n_distinct(grid_a$L) > 1) {
          for (scales in c("free", "fixed")) {
              fig_p <- fig_tv +

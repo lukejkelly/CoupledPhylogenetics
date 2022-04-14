@@ -52,7 +52,7 @@ my_asdsf_plot <- function(grid_e, fig_rwty, chains, burnin, n_win,
     list_L <- grid_e %>% select(L) %>% unique() %>% pull(L) %>% as.list()
     fig_rwty_stats <- map(
         fig_rwty,
-        ~ .$data %>% select(Generation, ASDSF, upper.95, lower.95)
+        ~ .$data %>% select(Generation, ASDSF)
     )
     my_fig_rwty_data <- map2(
         list_L,
@@ -62,12 +62,10 @@ my_asdsf_plot <- function(grid_e, fig_rwty, chains, burnin, n_win,
         bind_rows()
     my_fig_rwty <- my_fig_rwty_data %>%
         ggplot(aes(x = Generation, xend = xend)) +
-        geom_segment(aes(y = ASDSF, yend = ASDSF, colour = "ASDSF")) +
-        # geom_segment(aes(y = lower.95, yend = lower.95, colour = "95%")) +
-        # geom_segment(aes(y = upper.95, yend = upper.95, colour = "95%")) +
-        # geom_pointrange(aes(ymin = lower.95, ymax = upper.95,
-        #                     colour = "asdsf"),
-        #                 show.legend = TRUE) +
+        geom_segment(
+            aes(y = ASDSF, yend = ASDSF, linetype = "ASDSF"),
+            alpha = 0.75
+        ) +
         geom_hline(aes(yintercept = 0.01), alpha = 0.25, linetype = "dashed") +
         ylim(0, NA) +
         labs(title = "ASDSF",
@@ -76,7 +74,8 @@ my_asdsf_plot <- function(grid_e, fig_rwty, chains, burnin, n_win,
              x = sprintf("iteration / %d", grid_e$sample_interval[1]),
              y = "ASDSF",
              linetype = NULL, colour = NULL
-         )
+         ) +
+         theme_light()
     if (length(list_L) > 1) {
         for (scales in c("free", "fixed")) {
             fig_p <- my_fig_rwty +
