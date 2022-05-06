@@ -26,6 +26,7 @@ make_tau_ecdf <- function(grid_a) {
             y = "ECDF",
             linetype = "mu"
         ) +
+        scale_x_continuous(limits = c(0, NA)) +
         theme_light()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
@@ -74,6 +75,7 @@ make_tau_eccdf <- function(grid_a) {
             y = "1 - ECDF",
             linetype = "mu"
         ) +
+        scale_x_continuous(limits = c(0, NA), oob = oob_censor_any) +
         scale_y_log10() +
         theme_light()
     if (n_distinct(grid_a$L) > 1) {
@@ -104,10 +106,21 @@ make_tau_eccdf <- function(grid_a) {
 
 ## tv up to last meeting time
 tv_data <- grid_a %>%
-    nest(n_data = c(c, tau)) %>%
-    mutate(i_max = map_dbl(n_data, ~max(.$tau))) %>%
+    nest(n_data = c(sample_interval, lag, c, tau)) %>%
+    mutate(
+        i_max1 = map_dbl(
+            n_data,
+            ~max(.$tau - .$lag / .$sample_interval)
+        ),
+        i_max2 = map_dbl(
+            n_data,
+            ~max(.$lag / .$sample_interval)
+        ),
+        i_max = pmax(i_max1, i_max2)
+    ) %>%
+    # mutate(iter = map(i_max, ~round(seq.int(0, .)))) %>%
     mutate(iter = map(i_max, ~round(seq.int(0, ., length.out = 10 * n_c)))) %>%
-    select(-i_max) %>%
+    select(-c(i_max1, i_max2, i_max)) %>%
     unnest(cols = iter) %>%
     unnest(cols = n_data) %>%
     mutate(tv = NA_real_)
