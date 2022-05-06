@@ -37,57 +37,58 @@ get_rwty_pars <- function(out_dir, grid_i) {
     return(pars)
 }
 
-win_size <- function(y, n_win = 10) {
-    n_steps <- y$run_length / y$sample_interval
-    ws <- floor(n_steps / n_win)
-    return(ws)
-}
-x_end <- function(y, n_win = 10) {
-    xb <- seq_len(n_win) * win_size(y, n_win)
-    return(xb)
-}
+my_asdsf_plot <- function(grid_e, fig_rwty) {
 
-my_asdsf_plot <- function(grid_e, fig_rwty, chains, burnin, n_win,
-                          min.freq) {
-    list_L <- grid_e %>% select(L) %>% unique() %>% pull(L) %>% as.list()
+    list_L <- grid_e %>% select(L) %>% unique() %>% pull(L)
     fig_rwty_stats <- map(
         fig_rwty,
         ~ .$data %>% select(Generation, ASDSF)
     )
-    my_fig_rwty_data <- map2(
-        list_L,
-        fig_rwty_stats,
-        ~ tibble(L = .x, .y, xend = x_end(grid_e[1, ], n_win))
-    ) %>%
-        bind_rows()
+    my_fig_rwty_data <- tibble(L = list_L, fig_rwty_stats) %>%
+        unnest(fig_rwty_stats)
+
     my_fig_rwty <- my_fig_rwty_data %>%
-        ggplot(aes(x = Generation, xend = xend)) +
-        geom_segment(
-            aes(y = ASDSF, yend = ASDSF, linetype = "ASDSF"),
-            alpha = 0.75
-        ) +
+        ggplot(aes(x = Generation, y = ASDSF)) +
+        geom_line(aes(linetype = "ASDSF"), alpha = 0.5) +
+        geom_point(aes(shape = "ASDSF")) +
         geom_hline(aes(yintercept = 0.01), alpha = 0.25, linetype = "dashed") +
-        ylim(0, NA) +
-        labs(title = "ASDSF",
-             subtitle = sprintf("minimum %.02e iterations, replications = %d",
-                                grid_e$run_length[1], n_distinct(grid_e$c)),
-             x = sprintf("iteration / %d", grid_e$sample_interval[1]),
-             y = "ASDSF",
-             linetype = NULL, colour = NULL
+        labs(
+            title = "ASDSF",
+            subtitle = sprintf(
+                "minimum %.02e iterations, replications = %d",
+                grid_e$run_length[1],
+                n_distinct(grid_e$c)
+            ),
+            x = sprintf("iteration / %d", grid_e$sample_interval[1]),
+            y = "ASDSF",
+            linetype = NULL,
+            shape = NULL
          ) +
+         xlim(0, NA) +
+         scale_y_log10() +
          theme_light()
     if (length(list_L) > 1) {
         for (scales in c("free", "fixed")) {
             fig_p <- my_fig_rwty +
-                facet_wrap(~ L, ncol = length(list_L), scales = scales,
-                           labeller = "label_both")
-            ggsave(sprintf(fig_template, sprintf("asdsf_axes-%s", scales)),
-                   fig_p,
-                   width = 3 * length(list_L) + 2,
-                   height = 3)
+                facet_wrap(
+                    ~ L,
+                    ncol = length(list_L),
+                    scales = scales,
+                    labeller = "label_both"
+                )
+            ggsave(
+                sprintf(fig_template, sprintf("asdsf_axes-%s", scales)),
+                fig_p,
+                width = 3 * length(list_L) + 2,
+                height = 3
+            )
         }
     } else {
-        ggsave(sprintf(fig_template, "asdsf"), my_fig_rwty, width = 5,
-               height = 3)
+        ggsave(
+            sprintf(fig_template, "asdsf"),
+            my_fig_rwty,
+            width = 5,
+            height = 3
+        )
     }
 }
