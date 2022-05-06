@@ -264,8 +264,9 @@ make_tau_eccdf <- function(grid_a) {
             y = "1 - ECDF",
             linetype = "lag"
         ) +
+        scale_x_continuous(oob = oob_censor_any) +
         scale_y_log10() +
-        theme_light
+        theme_light()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
