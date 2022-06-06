@@ -3,6 +3,7 @@ library("dplyr")
 library("ape")
 library("ggplot2")
 library("purrr")
+library("scales")
 
 # Functions to construct file names and paths
 get_file_template_a <- function() {
@@ -18,11 +19,15 @@ make_file_name <- function(file_dir, L, root_time, lambda, mu, beta,
                            lag = NULL, c, d, e) {
     # Run index is c, decorator d = "x" or "y" and ending e
     if (is.null(lag)) {
-        file_name <- sprintf(get_file_template_b(),
-                             L, root_time, lambda, mu, beta, e)
+        file_name <- sprintf(
+            get_file_template_b(),
+            L, root_time, lambda, mu, beta, e
+        )
     } else {
-        file_name <- sprintf(get_file_template_a(),
-                             L, root_time, lambda, mu, beta, lag, c, d, e)
+        file_name <- sprintf(
+            get_file_template_a(),
+            L, root_time, lambda, mu, beta, lag, c, d, e
+        )
     }
     return(file.path(file_dir, file_name))
 }
@@ -50,7 +55,9 @@ read_nexus_file_ <- function(target_dir, grid) {
 
 # Reading tree samples
 get_trees <- function(tree_file) {
-    trees <- ape::read.tree(tree_file, skip = 7, comment.char = "#", keep.multi = TRUE)
+    trees <- ape::read.tree(
+        tree_file, skip = 7, comment.char = "#", keep.multi = TRUE
+    )
     return(trees)
 }
 
@@ -62,15 +69,20 @@ get_trees_ <- function(file_dir, grid, lag, c, d) {
 
 # Reading parameter samples
 get_par_names <- function() {
-    par_names <- c("sample", "log_prior", "integrated_llkd", "root_time", "mu",
-                   "p", "lambda", "kappa", "rho", "ncat", "log_likelihood",
-                   "beta")
+    par_names <- c(
+        "sample", "log_prior", "integrated_llkd", "root_time", "mu",
+        "p", "lambda", "kappa", "rho", "ncat", "log_likelihood", "beta"
+    )
     return(par_names)
 }
 
 get_pars <- function(par_file) {
-    pars <- readr::read_table2(par_file, get_par_names()[c(2:5, 8:12)],
-                              "-dddd--ddidd-", skip = 3)
+    pars <- readr::read_table(
+        par_file,
+        get_par_names()[c(2:5, 8:12)],
+        "-dddd--ddidd-",
+        skip = 3
+    )
     return(pars)
 }
 
@@ -96,14 +108,25 @@ get_pa_xy <- function(file_dir, grid, lag, c, moves) {
 # Read config file and make settings grids
 make_grid <- function(config_file) {
     source(config_file, TRUE)
-    grid_config <- expand_grid(L = list_L, root_time = list_root_time,
-                               lambda = list_lambda, mu = list_mu,
-                               beta = list_beta)
-    grid_a <- expand_grid(grid_config, run_length = list_run_length$coupled,
-                          sample_interval = list_sample_interval$coupled,
-                          lag = list_lag, c = list_c)
-    grid_b <- tibble(grid_config, run_length = list_run_length$marginal,
-                     sample_interval = list_sample_interval$marginal)
+    grid_config <- expand_grid(
+        L = list_L,
+        root_time = list_root_time,
+        lambda = list_lambda,
+        mu = list_mu,
+        beta = list_beta
+    )
+    grid_a <- expand_grid(
+        grid_config,
+        run_length = list_run_length$coupled,
+        sample_interval = list_sample_interval$coupled,
+        lag = list_lag,
+        c = list_c
+    )
+    grid_b <- tibble(
+        grid_config,
+        run_length = list_run_length$marginal,
+        sample_interval = list_sample_interval$marginal
+    )
     return(list(grid_a = grid_a, grid_b = grid_b))
 }
 
@@ -139,8 +162,9 @@ get_coupling_times_ <- function(out_dir, grid_a) {
         x <- get_pars_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_x")
         y <- get_pars_(out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_y")
         # pre-computed tree distances
-        z <- read.table(make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
-                                        grid_a_i$c, "", "dist"))
+        z <- read.table(make_file_name_(
+            out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "", "dist"
+        ))
 
         lag_offset <- grid_a_i$lag / grid_a_i$sample_interval
 
@@ -162,8 +186,9 @@ get_coupling_times <- function(out_dir, grid_a) {
     for (i in seq_along(tau)) {
         svMisc::progress(i, length(tau))
         grid_a_i <- grid_a[i, ]
-        file_name <- make_file_name_(out_dir, grid_a_i, grid_a_i$lag,
-                                     grid_a_i$c, "_x", "tau")
+        file_name <- make_file_name_(
+            out_dir, grid_a_i, grid_a_i$lag, grid_a_i$c, "_x", "tau"
+        )
         tau[i] <- scan(file_name)
     }
     message("coupling times computed")
@@ -174,28 +199,97 @@ make_tau_ecdf <- function(grid_a) {
     fig_tau <- grid_a %>%
         ggplot(aes(
             x = tau - lag / sample_interval,
-            colour = factor(sprintf("%.4g", lag),
-                            levels = sprintf("%.4g", unique(sort(lag))))
+            linetype = factor(
+                sprintf("%.4g", lag),
+                levels = sprintf("%.4g", unique(sort(lag)))
+            )
         )) +
         stat_ecdf(pad = FALSE, alpha = 0.75) +
-        labs(title = "ECDF of coupling time tau",
-             subtitle = sprintf("minimum %.02e iterations, replications = %d",
-                                grid_a$run_length[1], n_distinct(grid_a$c)),
-             x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
-             y = "ECDF", # latex2exp::TeX(r'($\hat{F}(\tau)$)'),
-             colour = "lag")
+        labs(
+            title = "ECDF of coupling time tau",
+            subtitle = sprintf(
+                "minimum %.02e iterations, replications = %d",
+                grid_a$run_length[1],
+                n_distinct(grid_a$c)
+            ),
+            x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
+            y = "ECDF",
+            linetype = "lag"
+        ) +
+        theme_light()
     if (n_distinct(grid_a$L) > 1) {
         for (scales in c("free_x", "fixed")) {
             fig_p <- fig_tau +
-                facet_wrap(~ L, ncol = n_distinct(grid_a$L), scales = scales,
-                           labeller = "label_both")
-            ggsave(sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
-                   fig_p,
-                   width = 3 * n_distinct(grid_a$L) + 2,
-                   height = 3)
+                facet_wrap(
+                    ~ L,
+                    ncol = n_distinct(grid_a$L),
+                    scales = scales,
+                    labeller = "label_both"
+                )
+            ggsave(
+                sprintf(fig_template, sprintf("tau-ecdf_axes-%s", scales)),
+                fig_p,
+                width = 3 * n_distinct(grid_a$L) + 2,
+                height = 3
+            )
         }
     } else {
-        ggsave(sprintf(fig_template, "tau"), fig_tau, width = 5, height = 3)
+        ggsave(
+            sprintf(fig_template, "tau-ecdf"),
+            fig_tau,
+            width = 5,
+            height = 3
+        )
+    }
+}
+
+make_tau_eccdf <- function(grid_a) {
+    fig_tau <- grid_a %>%
+        ggplot(aes(
+            x = tau - lag / sample_interval,
+            linetype = factor(
+                sprintf("%.4g", lag),
+                levels = sprintf("%.4g", unique(sort(lag)))
+            )
+        )) +
+        geom_step(aes(y = 1 - ..y..), stat = "ecdf", alpha = 0.75) +
+        labs(
+            title = "EECDF of coupling time tau",
+            subtitle = sprintf(
+                "minimum %.02e iterations, replications = %d",
+                grid_a$run_length[1],
+                n_distinct(grid_a$c)
+            ),
+            x = sprintf("(tau - lag) / %d", grid_a$sample_interval[1]),
+            y = "1 - ECDF",
+            linetype = "lag"
+        ) +
+        scale_x_continuous(oob = oob_censor_any) +
+        scale_y_log10() +
+        theme_light()
+    if (n_distinct(grid_a$L) > 1) {
+        for (scales in c("free_x", "fixed")) {
+            fig_p <- fig_tau +
+                facet_wrap(
+                    ~ L,
+                    ncol = n_distinct(grid_a$L),
+                    scales = scales,
+                    labeller = "label_both"
+                )
+            ggsave(
+                sprintf(fig_template, sprintf("tau-eccdf_axes-%s", scales)),
+                fig_p,
+                width = 3 * n_distinct(grid_a$L) + 2,
+                height = 3
+            )
+        }
+    } else {
+        ggsave(
+            sprintf(fig_template, "tau-eccdf"),
+            fig_tau,
+            width = 5,
+            height = 3
+        )
     }
 }
 
@@ -209,9 +303,11 @@ get_estimator_k <- function(grid_a) {
 
 make_tv_figure <- function(out_dir, grid_a, iters) {
     tv_data <- expand_grid(grid_a, iter = iters, tv = NA_real_)
-    tv_data$tv <- tv_bound_estimator(tv_data$tau,
-                                     tv_data$lag / tv_data$sample_interval,
-                                     tv_data$iter)
+    tv_data$tv <- tv_bound_estimator(
+        tv_data$tau,
+        tv_data$lag / tv_data$sample_interval,
+        tv_data$iter
+    )
     fig_tv_data <- tv_data %>%
         select(-tau) %>%
         nest(s = c(c, tv)) %>%
@@ -220,35 +316,53 @@ make_tv_figure <- function(out_dir, grid_a, iters) {
         ggplot(aes(
             x = iter,
             y = tv,
-            colour = factor(sprintf("%.4g", lag),
-                            levels = sprintf("%.4g", unique(sort(lag))))
+            linetype = factor(
+                sprintf("%.4g", lag),
+                levels = sprintf("%.4g", unique(sort(lag)))
+            )
         )) +
-        geom_line(size = 1, alpha = 0.75) +
-        labs(title = "TV upper bound",
-             subtitle = sprintf("minimum %.02e iterations, replications = %d",
-                                grid_a$run_length[1], n_distinct(grid_a$c)),
-             x = sprintf("iteration / %d", grid_a$sample_interval[1]),
-             y = "TV upper bound",
-             colour = "lag")
-     if (n_distinct(grid_a$L) > 1) {
-         for (scales in c("free", "fixed")) {
-             fig_p <- fig_tv +
-                 # scale_y_continuous(trans = "log1p") +
-                 facet_wrap(~ L, ncol = n_L, scales = scales,
-                            labeller = "label_both")
-             ggsave(sprintf(fig_template, sprintf("tv_axes-%s", scales)),
-                    fig_p,
-                    width = 3 * n_distinct(grid_a$L) + 2,
-                    height = 3)
+        geom_line(alpha = 0.75) +
+        labs(
+            title = "TV upper bound",
+            subtitle = sprintf(
+                "minimum %.02e iterations, replications = %d",
+                grid_a$run_length[1],
+                n_distinct(grid_a$c)
+            ),
+            x = sprintf("iteration / %d", grid_a$sample_interval[1]),
+            y = "TV upper bound",
+            linetype = "lag"
+         ) +
+         theme_light()
+    if (n_distinct(grid_a$L) > 1) {
+        for (scales in c("free", "fixed")) {
+            fig_p <- fig_tv +
+                facet_wrap(
+                    ~ L,
+                    ncol = n_L,
+                    scales = scales,
+                    labeller = "label_both"
+                )
+            ggsave(
+                sprintf(fig_template, sprintf("tv_axes-%s", scales)),
+                fig_p,
+                width = 3 * n_distinct(grid_a$L) + 2,
+                height = 3
+            )
          }
      } else {
-         ggsave(sprintf(fig_template, "tv"), fig_tv, width = 5, height = 3)
+        ggsave(sprintf(fig_template, "tv"), fig_tv, width = 5, height = 3)
      }
 }
 
 make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
-    w1_data <- expand_grid(grid_a, iter = iters, w1_root = NA_real_,
-                           w1_clade = NA_real_, w1_tree = NA_real_)  %>%
+    w1_data <- grid_a %>%
+        expand_grid(
+            iter = iters,
+            w1_root = NA_real_,
+            w1_clade = NA_real_,
+            w1_tree = NA_real_
+        )  %>%
         nest(s = c(iter, w1_root, w1_clade, w1_tree))
 
     for (i in seq_len(nrow(w1_data))) {
@@ -270,9 +384,11 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
         )
 
         # Clades and trees
-        d_i <- plyr::match_df(grid_d, w1_i,
-                              c("L", "root_time", "lambda", "mu", "beta",
-                                "run_length", "sample_interval"))
+        d_i <- plyr::match_df(
+            grid_d,
+            w1_i,
+            c("L", "root_time", "lambda", "mu", "beta", "run_length", "sample_interval")
+        )
         t_x <- get_trees_(out_dir, w1_i, lag_i, c_i, "_x")
         t_y <- get_trees_(out_dir, w1_i, lag_i, c_i, "_y")
 
@@ -303,29 +419,46 @@ make_w1_figure <- function(out_dir, grid_a, grid_d, iters) {
             w1_clade = map_dbl(s, ~mean(.$w1_clade)),
             w1_tree = map_dbl(s, ~mean(.$w1_tree))
         ) %>%
-        pivot_longer(starts_with("w1_"), "stat", names_prefix = "w1_",
-                     values_to = "w1") %>%
+        pivot_longer(
+            starts_with("w1_"),
+            "stat",
+            names_prefix = "w1_",
+            values_to = "w1"
+        ) %>%
         mutate(across("stat", factor, c("root", "clade", "tree")))
     fig_w1 <- fig_w1_data %>%
         ggplot(aes(
             x = iter,
             y = w1,
-            colour = factor(sprintf("%.4g", lag),
-                                    levels = sprintf("%.4g", unique(sort(lag))))
+            colour = factor(
+                sprintf("%.4g", lag),
+                levels = sprintf("%.4g", unique(sort(lag)))
+            )
         )) +
         geom_line(alpha = 0.75) +
-        labs(title = "Estimated W1 bound",
-             subtitle = sprintf("%.02e iterations, replications = %d",
-                                w1_data$run_length[1], n_distinct(w1_data$c)),
-             x = sprintf("iteration / %d", si_a),
-             y = "d_w1",
-             colour = "lag") +
-        facet_wrap(~ L + lambda + stat, ncol = 3, scales = "free",
-                   labeller = "label_both")
-    ggsave(sprintf(fig_template, "w1_axes-free"),
-           fig_w1,
-           width = 3 * 3 + 2,
-           height = prod(3, n_distinct(grid_a$L), n_distinct(grid_a$lambda)))
+        labs(
+            title = "Estimated W1 bound",
+            subtitle = sprintf(
+                "%.02e iterations, replications = %d",
+                w1_data$run_length[1],
+                n_distinct(w1_data$c)
+            ),
+            x = sprintf("iteration / %d", si_a),
+            y = "d_w1",
+            colour = "lag"
+        ) +
+        facet_wrap(
+            ~ L + lambda + stat,
+            ncol = 3,
+            scales = "free",
+            labeller = "label_both"
+        )
+    ggsave(
+        sprintf(fig_template, "w1_axes-free"),
+        fig_w1,
+        width = 3 * 3 + 2,
+        height = prod(3, n_distinct(grid_a$L), n_distinct(grid_a$lambda))
+    )
 }
 
 # Make marginal histograms
@@ -385,21 +518,20 @@ make_marginal_hist <- function(out_dir, grid_a, grid_b, par_name, par_label,
     }
     fig <- fig +
         labs(title = sprintf("Marginal distribution of %s", par_name),
-             subtitle = sprintf("x-chain samples %.02e to %.02e in %d coupled chains",
-                                k, m, n_distinct(grid_a$c)),
+             subtitle = sprintf("x-chain samples in %d coupled chains",
+                                n_distinct(grid_a$c)),
              colour = NULL,
              fill = NULL,
              x = par_label)
     if (n_distinct(grid_a$L) > 1 || n_distinct(grid_a$lambda) > 1) {
         for (scales in c("free", "fixed")) {
             fig_p <- fig +
-            facet_wrap(~ L + lambda, ncol = 2, scales = scales,
-                       labeller = "label_both")
-            ggsave(sprintf(fig_template, sprintf("%s-hist_axes-%s", par_label,
-                                                 scales)),
+            facet_wrap(~ L, scales = scales, labeller = "label_both")
+            ggsave(sprintf(fig_template,
+                           sprintf("%s-hist_axes-%s", par_label, scales)),
                    fig_p,
-                   width = 3 * n_distinct(grid_a$lambda) + 2,
-                   height = 3 * n_distinct(grid_a$L))
+                   width = 3 * n_distinct(grid_a$L) + 2,
+                   height = 3)
         }
     } else {
         ggsave(sprintf(fig_template, sprintf("%s-hist", par_label)),

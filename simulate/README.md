@@ -46,10 +46,10 @@ Some of the TraitLab settings are hard-coded into the template which is populate
 
 ## Run experiment
 
-### Singe local experiment
+### Single local experiment
 Execute `batchTraitLab` in Matlab, with first argument the relevant `.par` file.
 
-## Run all experiments on cluster
+### Run all experiments on cluster
 
 I use the `send_folder.sh` script to `rsync` a folder of submission scripts to the `CoupledPhylogenetics` folder on the compute cluster. My directory is structured as
 ```
