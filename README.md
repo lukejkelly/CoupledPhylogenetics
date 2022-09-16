@@ -1,8 +1,10 @@
 # CoupledPhylogenetics
 
-This repo contains various scripts to run marginal/coupled experiments in TraitLab and analyse the output.
+This code repository accompanies the paper 'Lagged couplings diagnose Markov chain Monte Carlo phylogenetic inference' by L.J. Kelly, R.J. Ryder and G. Clarté.
 
-* `simulate`: Matlab scripts to generate synthetic data sets and parameter files
-* `analyses`: R scripts to analyse the output of experiments created via `simulate` and create figures
+It contains various scripts to run marginal/coupled experiments in TraitLab and analyse the output:
 
-Many of the shell and analysis scripts are for my own use on my institution's compute cluster, but may serve as a guide for running experiments elsewhere.
+* `simulate` contains Matlab scripts to generate synthetic data sets, parameter files for experiments and slurm submission scripts;
+* `analyses` contains R scripts to analyse the output of experiments created via `simulate` and make figures.
+
+README files in each the sub-directories describe how to run the code.
