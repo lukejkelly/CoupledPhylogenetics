@@ -2,10 +2,10 @@
 
 Steps to analyse output from coupled MCMC experiments. The primary script for  analysing output is `coupling-plots.R`, ignore any lines which are commented out. Many of the others scripts are for checking things and are not needed to plot the output of an experiment
 
-This code uses a modified version of the `RWTY` `R` package to compute ASDSF on disjoint sliding windows samples, steps to install it are below. (Alternatively, `RWTY` can be installed from `CRAN` and will produce cumulative ASDSF estimates instead --- see instructions below.)
+This code uses a modified version of the RWTY R package to compute ASDSF on disjoint sliding windows samples, steps to install it are below. (Alternatively, `rwty` can be installed from CRAN and will produce cumulative ASDSF estimates instead; see instructions below.)
 
 ## Description
-Start `R` in the directory of a completed experiment --- for example, `CoupledPhylogenetics/20210831` --- and run the code in `coupling-plots.R` which will
+Start `R` in the directory of a completed experiment — for example, `CoupledPhylogenetics/20210831` — and paste the code in `../analyses/coupling-plots.R` into the console. This will
 
 * Load some `R` packages, which may need to be installed on your system
 * Source various functions (`coupling-functions.R`, ...) to deal with output and create figures
@@ -14,8 +14,6 @@ Start `R` in the directory of a completed experiment --- for example, `CoupledPh
     * `grid_b` is the corresponding marginal experiments
 * Read the coupling times from files, plot the ECDF and total variation bounds
     * Plotting functions may need to be edited depending on the range of parameters for experiments: currently they `facet_wrap` over `L`, include `mu` if you have more than one value in your experiments, etc.
-* Plot histograms or kernel density estimates using (longer) X components of coupled chains
-    * This depends on the length of the chain so is difficult to compare if chains are a different random length, can be edited to use samples `k, ..., m` for burn-in `k` and minimum chain length `m`
 * Create sliding window ASDSF plot
     * Takes the data from different plot objects and replots it together
 
