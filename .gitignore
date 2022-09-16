@@ -1,6 +1,6 @@
-# Data, parameters and output
-20*
-# Figures
-*.pdf
-debug/
-backup/
+# Ignore everything but README.md, analyses/ and simulate/
+
+*
+!README.md
+!analyses/
+!simulate/
