@@ -2,7 +2,7 @@
 
 Steps to analyse output from coupled MCMC experiments. The primary script for  analysing output is `coupling-plots.R`, ignore any lines which are commented out. Many of the others scripts are for checking things and are not needed to plot the output of an experiment
 
-This code uses a modified version of the `RWTY` `R` package to compute ASDSF on disjoint sliding windows samples, steps to install it are below. (Alternatively, `RWTY` can be installed from `CRAN` and will produce cumulative ASDSF estimates instead.)
+This code uses a modified version of the `RWTY` `R` package to compute ASDSF on disjoint sliding windows samples, steps to install it are below. (Alternatively, `RWTY` can be installed from `CRAN` and will produce cumulative ASDSF estimates instead --- see instructions below.)
 
 ## Description
 Start `R` in the directory of a completed experiment --- for example, `CoupledPhylogenetics/20210831` --- and run the code in `coupling-plots.R` which will
@@ -29,22 +29,7 @@ If `devtools` is available, then execute the following within `R` to install the
 ```R
 devtools::install_github("https://github.com/lukejkelly/RWTY", "lagged-asdsf")
 ```
-Otherwise, the code may be download from
-https://github.com/lukejkelly/RWTY/archive/refs/heads/lagged-asdsf.zip and built manually. On a mac, from the directory containing the download execute the following in the Terminal.
-```bash
-R CMD build --no-build-vignettes RWTY-lagged-asdsf &&
-R CMD check --no-build-vignettes --no-manual rwty_1.0.2.tar.gz &&
-R CMD INSTALL rwty_1.0.2.tar.gz
-```
-
-As this is different from the CRAN version of `rwty`, it can be installed in a separate location from an existing installation
-```bash
-R CMD INSTALL --library=<path to personal library> rwty_1.0.2.tar.gz
-```
-and loaded via
-```R
-library("rwty", lib.loc = "<path to personal library>")
-```
+Otherwise, the code may be installed manually.
 
 This version of `rwty` includes one additional function, `makeplot.asdsf.mb()`, to compute ASDSF on sliding windows which grow in size.
 ```R

@@ -7,25 +7,15 @@ library("rwty") # modified to implement makeplot.asdsf.mb
 
 # Run from current experiment folder at same level in hierarchy as analyses/
 source_analysis_file <- function(s) source(file.path("..", "analyses", s))
-source_analysis_file("estimators.R")
 source_analysis_file("coupling-functions.R")
+source_analysis_file("estimators.R")
 source_analysis_file("ipm-bounds.R")
-# source_analysis_file("tree-metrics.R")
 source_analysis_file("rwty-functions.R")
 
 # Make grids of config and run settings
 grids <- make_grid("config.R")
-# Coupled shorter runs is a, longer run is b, c is indices of coupled runs
+# Coupled runs are in a, marginal runs in b
 grid_a <- grids$grid_a
-grid_b <- grids$grid_b
-
-# grid_d <- grid_b # grid_a %>% nest(s = c(lag, c)) %>% select(-s)
-# # grid_d$cl <- rep(list(c("5", "6", "7", "8"), c("5", "6", "9", "10")), each = 1)
-# # grid_d$tr <- grid_d %>%
-# #     select(L, root_time, lambda, mu, beta) %>%
-# #     pmap(function(...) read_nexus_file(target_dir, ...))
-# grid_d$cl <- NA
-# grid_d$tr <- NA
 
 # Target figure and output templates and directories
 out_dir <- "output"
@@ -42,44 +32,15 @@ rl_a <- grid_a$run_length[1]
 si_a <- grid_a$sample_interval[1]
 
 ################################################################################
-# # Compute tree distances and write to file
-# compute_tree_distances(out_dir, grid_a)
-
-################################################################################
 # Coupling times
 grid_a$tau <- get_coupling_times(out_dir, grid_a)
 make_tau_ecdf(grid_a)
 make_tau_eccdf(grid_a)
 
 ################################################################################
-# Integral probablity metrics
-# iters <- seq.int(0, max(grid_a$tau, rl_a / si_a))
-# iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
-iters <- seq.int(0, max(grid_a$lag / grid_a$sample_interval))
+# Estimate TV bound
+iters <- seq.int(0, max(grid_a$tau - grid_a$lag / grid_a$sample_interval) + 1)
 make_tv_figure(out_dir, grid_a, iters)
-
-################################################################################
-# Marginal histograms
-make_marginal_hist(out_dir, grid_a, grid_b, "log_prior", "prior")
-make_marginal_hist(out_dir, grid_a, grid_b, "integrated_llkd", "llkd")
-make_marginal_hist(out_dir, grid_a, grid_b, "root_time", "root")
-make_marginal_hist(out_dir, grid_a, grid_b, "ncat", "ncat")
-make_marginal_hist(out_dir, grid_a, grid_b, "mu", "mu")
-make_marginal_hist(out_dir, grid_a, grid_b, "beta", "beta")
-
-################################################################################
-# # Estimators
-# make_estimator_figs(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-# # make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "clade support",
-# #                     "clade")
-# make_estimator_figs(out_dir, grid_a, grid_b, grid_d, "topology support",
-#                     "topology")
-#
-# trace_estimator(out_dir, grid_a, grid_b, NULL, "root_time", "root")
-# # trace_estimator(out_dir, grid_a, grid_b, grid_d, "clade support",
-# #                     "clade")
-# trace_estimator(out_dir, grid_a, grid_b, grid_d, "topology support",
-#                 "topology")
 
 ################################################################################
 # ASDSF

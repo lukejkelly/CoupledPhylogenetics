@@ -466,7 +466,7 @@ get_marginal_data <- function(out_dir, grid_a, grid_b, par_name, k, m) {
     if (all(grid_b$run_length == 0)) {
         out_r <- grid_a
     } else {
-        out_r <- bind_rows(grid_a, tibble(grid_b(grid_b$run_length > 0),
+        out_r <- bind_rows(grid_a, tibble(grid_b[grid_b$run_length > 0],
                                           lag = NA, c = NA))
     }
     out <- out_r %>%
